@@ -94,7 +94,7 @@ There are 2 different methods you can choose from to set them up
 Credits
 -------
 
-- B1naryKill3r (Main Programmer/Developer)
+- GrzybDev (Main Programmer/Developer)
 
 Special thanks to:
 - Domo and Freaky123 (for sharing the Server Files and the v10.0 source code)
