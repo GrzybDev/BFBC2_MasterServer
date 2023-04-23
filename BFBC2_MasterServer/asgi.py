@@ -31,9 +31,21 @@ application = ProtocolTypeRouter(
     }
 )
 
-try:
-    # Remove all lobbies on server start
-    Lobby.objects.all().delete()
-except ProgrammingError:
-    # Database is not ready yet, ignore this exception
-    pass
+
+def on_startup():
+    try:
+        # Remove all lobbies on server start
+        Lobby.objects.all().delete()
+    except ProgrammingError:
+        # Database is not ready yet, ignore this exception
+        pass
+
+    try:
+        # Create default lobby
+        Lobby.objects.create(name="bfbc2PC01", locale="en_US")
+    except ProgrammingError:
+        # Database is not ready yet, ignore this exception
+        pass
+
+
+on_startup()
