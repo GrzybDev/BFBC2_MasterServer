@@ -89,11 +89,7 @@ class GameManager(models.Manager):
 
     @sync_to_async
     def delete_game(self, game):
-        gameLobby = game.lobby
         game.delete()
-
-        if self.filter(lobby=gameLobby).count() == 0:
-            gameLobby.delete()
 
     @sync_to_async
     def update_game(self, game, key, value):
