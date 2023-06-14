@@ -8,6 +8,12 @@ WORKDIR /out
 COPY requirements.txt .
 ADD setup.py .
 
+ADD requirements.txt manage.py /out/app/
+ADD BFBC2_MasterServer /out/app/BFBC2_MasterServer
+ADD Plasma /out/app/Plasma
+ADD Theater /out/app/Theater
+ADD easo /out/app/easo
+
 RUN pip wheel . -w wheels
 
 FROM python:3-alpine AS runtime
@@ -22,14 +28,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
 
-COPY requirements.txt .
-ADD manage.py .
-
-ADD BFBC2_MasterServer /app/BFBC2_MasterServer
-ADD Plasma /app/Plasma
-ADD Theater /app/Theater
-ADD easo /app/easo
-
+COPY --from=build /out/app /app
 COPY --from=build /out/wheels /tmp/wheels
 
 # Install pip requirements
