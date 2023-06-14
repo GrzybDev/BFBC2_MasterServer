@@ -1,7 +1,7 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
-FROM python:3.11-alpine AS build
+FROM python:3.10-alpine AS build
 
-RUN apk add build-base libffi-dev
+RUN apk add build-base libffi-dev postgresql libpq-dev
 RUN pip install poetry==1.5.1
 
 WORKDIR /out
@@ -17,7 +17,7 @@ ADD easo /out/app/easo
 
 RUN pip wheel -r requirements.txt -w wheels && cp requirements.txt app/requirements.txt
 
-FROM python:3.11-alpine AS runtime
+FROM python:3.10-alpine AS runtime
 
 WORKDIR /app
 
@@ -26,6 +26,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
+
+RUN apk add libpq
 
 COPY --from=build /out/app /app
 COPY --from=build /out/wheels /tmp/wheels

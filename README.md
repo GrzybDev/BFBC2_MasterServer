@@ -55,7 +55,7 @@ Requirements
 
 Eventually, running manually:
 
-- Python 3.7+
+- Python 3.10+
 - Poetry
 - Redis server
 - PostgreSQL server

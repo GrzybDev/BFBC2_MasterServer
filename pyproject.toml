@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{include = "bfbc2_masterserver"}, {include = "easo"}, {include = "Plasma"}, {include = "Theater"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 Django = "^4.2.2"
 django-redis = "^5.2.0"
 channels = "^4.0.0"
@@ -17,7 +17,7 @@ channels-redis = "^4.1.0"
 email-validator = "^2.0.0.post2"
 whitenoise = "^6.4.0"
 packaging = "^23.1"
-psycopg2-binary = "^2.9.6"
+psycopg2 = "^2.9.6"
 
 
 [build-system]
