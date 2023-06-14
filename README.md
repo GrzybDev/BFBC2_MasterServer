@@ -56,7 +56,7 @@ Requirements
 Eventually, running manually:
 
 - Python 3.7+
-- See `requirements.txt` for Python dependencies (...or just install everything via `pip install -r requirements.txt`)
+- Poetry
 - Redis server
 - PostgreSQL server
 
@@ -69,11 +69,11 @@ Setup
 Either use VSCode "launch" configuration or run manually:
 
 - Apply all environment variables from .env file
-- Install requirements: `pip install -r requirements.txt`
+- Install requirements: `poetry install`
 - Start postgres and redis server
-- Run `python manage.py migrate`
-- Run `python manage.py runserver`
-- Create superuser: `python manage.py createsuperuser`
+- Run `poetry run python manage.py migrate`
+- Run `poetry run python manage.py runserver`
+- Create superuser: `poetry run python manage.py createsuperuser`
 - Create serial keys by logging to Django Admin panel
 
 Example Traefik configuration can be found in 'docker-compose.yml' file

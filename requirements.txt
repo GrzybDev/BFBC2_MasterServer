@@ -1,9 +1,0 @@
-Django
-django-redis
-channels
-daphne>=4.0.0
-channels_redis
-psycopg2
-email-validator
-whitenoise
-packaging

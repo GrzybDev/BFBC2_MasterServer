@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "bfbc2-masterserver"
+version = "1.0.2"
+description = "Master Server Emulator for Battlefield: Bad Company 2 that aims to be complete replacement for the original master server, allowing to play the game without contacting EA servers."
+authors = ["Marek Grzyb <grzybdev@gmail.com>"]
+license = "GPL-3.0"
+readme = "README.md"
+packages = [{include = "bfbc2_masterserver"}, {include = "easo"}, {include = "Plasma"}, {include = "Theater"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+Django = "^4.2.2"
+django-redis = "^5.2.0"
+channels = "^4.0.0"
+daphne = "^4.0.0"
+channels-redis = "^4.1.0"
+email-validator = "^2.0.0.post2"
+whitenoise = "^6.4.0"
+packaging = "^23.1"
+psycopg2-binary = "^2.9.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

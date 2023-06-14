@@ -1,22 +1,23 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
-FROM python:3-alpine AS build
+FROM python:3.11-alpine AS build
 
 RUN apk add build-base postgresql libpq-dev libffi-dev
+RUN pip install poetry==1.5.1
 
 WORKDIR /out
 
-COPY requirements.txt .
-ADD setup.py .
+COPY poetry.lock pyproject.toml /out/
+RUN poetry export --output requirements.txt --without-hashes
 
-ADD requirements.txt manage.py /out/app/
+ADD manage.py /out/app/
 ADD BFBC2_MasterServer /out/app/BFBC2_MasterServer
 ADD Plasma /out/app/Plasma
 ADD Theater /out/app/Theater
 ADD easo /out/app/easo
 
-RUN pip wheel . -w wheels
+RUN pip wheel -r requirements.txt -w wheels && cp requirements.txt app/requirements.txt
 
-FROM python:3-alpine AS runtime
+FROM python:3.11-alpine AS runtime
 
 WORKDIR /app
 

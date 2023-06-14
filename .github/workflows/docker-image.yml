@@ -27,7 +27,7 @@ jobs:
       run: |
         docker pull ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${{ github.event.before }} || true
         docker pull ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest || true
-        docker buildx build --cache-from ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${{ github.event.before }} --cache-from ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest -t ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest -t ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${GITHUB_SHA} --platform linux/arm64 .
+        docker buildx build --cache-from ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${{ github.event.before }} --cache-from ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest -t ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest --cache-from type=gha --cache-to type=gha,mode=max -t ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${GITHUB_SHA} --platform linux/arm64 .
         docker push ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest
         docker push ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${GITHUB_SHA}
   
