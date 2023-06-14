@@ -1,7 +1,7 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 FROM python:3.11-alpine AS build
 
-RUN apk add build-base postgresql libpq-dev libffi-dev
+RUN apk add build-base libffi-dev
 RUN pip install poetry==1.5.1
 
 WORKDIR /out
@@ -20,8 +20,6 @@ RUN pip wheel -r requirements.txt -w wheels && cp requirements.txt app/requireme
 FROM python:3.11-alpine AS runtime
 
 WORKDIR /app
-
-RUN apk add libpq-dev
 
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
