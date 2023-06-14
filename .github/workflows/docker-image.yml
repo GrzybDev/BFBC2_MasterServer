@@ -38,7 +38,9 @@ jobs:
         username: action
         key: ${{ secrets.PROD_KEY }}
         envs: GITHUB_SHA
-        script: docker service update --image ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${GITHUB_SHA} emu_bfbc2_app
+        script: |
+          docker service update --image ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${GITHUB_SHA} emu_bfbc2_app
+          docker exec $(docker ps -q -f name=emu_bfbc2_app) python manage.py migrate
         
   analyze:
     name: Analyze
