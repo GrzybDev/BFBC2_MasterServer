@@ -17,18 +17,33 @@ jobs:
     
     - name: Install cross-compile tools
       run: |
-       sudo apt update
-       sudo apt install -y qemu-user-static binfmt-support
+       sudo apt-get update
+       sudo apt-get install -y qemu-user-static binfmt-support
     
     - name: Login to Docker Registry
       run: echo ${{ secrets.REGISTRY_PASSWORD }} | docker login ${{ secrets.REGISTRY_URL }} -u action --password-stdin
     
     - name: Build and Push Docker image
-      run: docker buildx build -t ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest --platform linux/arm64 --push .
-      
+      run: |
+        docker pull ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${{ github.event.before }} || true
+        docker pull ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest || true
+        docker buildx build --cache-from ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${{ github.event.before }} --cache-from ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest -t ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest -t ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${GITHUB_SHA} --platform linux/arm64 .
+        docker push ${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest
+        docker push ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${GITHUB_SHA}
+  
+    - name: Deploy
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.PROD_HOST }}
+        username: action
+        key: ${{ secrets.PROD_KEY }}
+        envs: GITHUB_SHA
+        script: docker service update --image ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${GITHUB_SHA} emu_bfbc2_app
+        
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_dispatch' }}
     permissions:
       actions: read
       contents: read
