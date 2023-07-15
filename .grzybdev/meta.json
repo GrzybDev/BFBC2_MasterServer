@@ -1,0 +1,7 @@
+{
+  "name": "Master Server Emulator for Battlefield: Bad Company 2",
+  "suite": "emu_bfbc2",
+  "target": [0],
+  "type": 1,
+  "theme": 0
+}
