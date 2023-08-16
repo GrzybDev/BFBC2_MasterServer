@@ -8,7 +8,7 @@ Demo Server
 ===========
 
 ### Config (for BFBC2_Hook, if you didn't override it in config you don't need to configure it manually):
-- Address: `bfbc2.grzyb.dev`
+- Address: `bfbc2.grzyb.app`
 - Port: `443`
 - Secure: `Yes`
 
