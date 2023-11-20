@@ -113,3 +113,19 @@ class TheaterConsumer(BFBC2Consumer):
                     },
                 },
             )
+    
+    async def send_remote_message_server(self, target, serviceStr, data):
+        active_session = cache.get(f"gameSession:{target}")
+        channel_layer = get_channel_layer()
+
+        if active_session:
+            await channel_layer.send(
+                active_session,
+                {
+                    "type": "external.send",
+                    "message": {
+                        "service": serviceStr,
+                        "data": data,
+                    },
+                },
+            )

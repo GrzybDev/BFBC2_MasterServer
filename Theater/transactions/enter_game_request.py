@@ -51,8 +51,6 @@ async def enter_game_request(connection, message):
     # Ticket is random 10 digit number, it has to be sent to both client and server
     ticket = "".join(random.choices(string.digits, k=10))
 
-    gameSession = cache.get(f"gameSession:{gid}")
-
     # Sent "Enter Game Host Request" to the game server
     if not serverFull:
         enterGameHostRequestData = {
@@ -69,8 +67,8 @@ async def enter_game_request(connection, message):
             "GID": gid,
         }
 
-        await connection.send_remote_message(
-            gameSession, "EGRQ", enterGameHostRequestData
+        await connection.send_remote_message_server(
+            gid, "EGRQ", enterGameHostRequestData
         )
     else:
         queueEnter = {
@@ -83,7 +81,7 @@ async def enter_game_request(connection, message):
             "GID": gid,
         }
 
-        await connection.send_remote_message(gameSession, "QENT", queueEnter)
+        await connection.send_remote_message_server(gid, "QENT", queueEnter)
 
     owner = await Game.objects.get_game_owner(lid, gid)
 

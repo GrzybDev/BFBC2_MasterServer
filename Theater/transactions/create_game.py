@@ -32,6 +32,6 @@ async def create_game(connection, message):
         response.Set(key, gameData[key])
 
     connection.game = gameObj
-    cache.set(f"gameSession:{gameData['GID']}", connection.lkey, timeout=None)
+    cache.set(f"gameSession:{gameData['GID']}", connection.channel_name, timeout=None)
 
     yield response
