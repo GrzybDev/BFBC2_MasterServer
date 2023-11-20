@@ -9,7 +9,7 @@ packages = [{include = "bfbc2_masterserver"}, {include = "easo"}, {include = "Pl
 
 [tool.poetry.dependencies]
 python = "^3.10"
-Django = "^4.2.3"
+Django = "^4.2.7"
 django-redis = "^5.2.0"
 channels = "^4.0.0"
 daphne = "^4.0.0"
