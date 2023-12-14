@@ -31,7 +31,7 @@ jobs:
           context: .
           platforms: linux/arm64
           push: true
-          tags: ${{ secrets.REGISTRY_URL }}/emu/bfbc2:${{ github.sha }},${{ secrets.REGISTRY_URL }}/emu/bfbc2:latest
+          tags: ${{ secrets.REGISTRY_URL }}/games/bfbc2/master:${{ github.sha }},${{ secrets.REGISTRY_URL }}/games/bfbc2/master:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
