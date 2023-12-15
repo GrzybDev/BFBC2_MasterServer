@@ -232,6 +232,7 @@ AUTH_USER_MODEL = "Plasma.Account"
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MIMETYPES = {"": "text/plain"}
 
+"""
 # Security
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -242,5 +243,6 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = -1
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+"""
 
 REAL_IP_HEADER = get_config("REAL_IP_HEADER", "X-REAL-IP").upper()
