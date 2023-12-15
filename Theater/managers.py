@@ -131,13 +131,14 @@ class GameManager(models.Manager):
                 game.serverPunkbuster = value
             case "B-U-PunkbusterVersion":
                 game.punkBusterVersion = value
-                """
-                I don't update serverEA here, because the server will always set it to 0, and this will allow us to set that value manually
-                in the django admin panel.
-                
             case "B-U-EA":
-                game.serverEA = value
-                """
+                # I don't update serverEA here, 
+                # because the server will always set it to 0, 
+                # and this will allow us to set that value manually
+                # in the django admin panel.
+                #
+                # game.serverEA = value
+                pass
             case "B-U-gameMod":
                 game.gameMod = value
             case "B-U-gamemode":
