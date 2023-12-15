@@ -2,7 +2,10 @@ from Theater.models import Game, GameDescription, PlayerData
 
 
 async def update_game_details(connection, message):
-    maxPlayers = connection.game.maxPlayers
+    game_data = await Game.objects.get_game_data(connection.lid, connection.gid)
+    game = await Game.objects.get_game(connection.lid, connection.gid)
+
+    maxPlayers = game_data["MP"]
 
     for i in range(maxPlayers):
         if maxPlayers < 10:
@@ -13,11 +16,11 @@ async def update_game_details(connection, message):
         if pdat is None:
             continue
 
-        await PlayerData.objects.update_player_data(connection.game, i, pdat)
+        await PlayerData.objects.update_player_data(game, i, pdat)
 
     serverDescriptionCount = message.Get("D-ServerDescriptionCount")
     GameDescription.objects.set_game_description_count(
-        connection.game, serverDescriptionCount
+        game, serverDescriptionCount
     )
 
     if serverDescriptionCount:
@@ -30,11 +33,11 @@ async def update_game_details(connection, message):
             if desc is None:
                 continue
 
-            await GameDescription.objects.set_game_description(connection.game, i, desc)
+            await GameDescription.objects.set_game_description(game, i, desc)
 
     keys = message.GetKeys()
 
     for key in keys:
-        await Game.objects.update_game(connection.game, key, message.Get(key))
+        await Game.objects.update_game(connection.lid, connection.gid, key, message.Get(key))
 
     yield

@@ -92,7 +92,9 @@ class GameManager(models.Manager):
         game.delete()
 
     @sync_to_async
-    def update_game(self, game, key, value):
+    def update_game(self, lid, gid, key, value):
+        game = self.get(lobby_id=lid, id=gid)
+        
         if isinstance(value, str):
             value = value.lstrip('"').rstrip('"')
 
@@ -132,13 +134,7 @@ class GameManager(models.Manager):
             case "B-U-PunkbusterVersion":
                 game.punkBusterVersion = value
             case "B-U-EA":
-                # I don't update serverEA here, 
-                # because the server will always set it to 0, 
-                # and this will allow us to set that value manually
-                # in the django admin panel.
-                #
-                # game.serverEA = value
-                pass
+                game.serverEA = value
             case "B-U-gameMod":
                 game.gameMod = value
             case "B-U-gamemode":
