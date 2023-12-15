@@ -88,7 +88,8 @@ class GameManager(models.Manager):
         }
 
     @sync_to_async
-    def delete_game(self, game):
+    def delete_game(self, gid):
+        game = self.get(id=gid)
         game.delete()
 
     @sync_to_async

@@ -20,11 +20,13 @@ class TheaterConsumer(BFBC2Consumer):
     transactor = None
 
     persona = None
-    game = None
     currentlyUpdating = False
 
     lkey = None
     pid = None
+
+    lid = None
+    gid = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,14 +35,14 @@ class TheaterConsumer(BFBC2Consumer):
     async def disconnect(self, code):
         await super().disconnect(code)
 
-        if self.game:
+        if self.lid and self.gid:
             from Theater.models import Game
 
-            cache.delete(f"gameSession:{self.game.id}")
-            cache.delete(f"queue:{self.game.id}")
-            cache.delete(f"nextServerPlayerID:{self.game.id}")
+            cache.delete(f"gameSession:{self.gid}")
+            cache.delete(f"queue:{self.gid}")
+            cache.delete(f"nextServerPlayerID:{self.gid}")
 
-            await Game.objects.delete_game(self.game)
+            await Game.objects.delete_game(self.gid)
 
         cache.delete(f"theaterSession:{self.lkey}")
 
