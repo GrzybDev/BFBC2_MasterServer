@@ -139,10 +139,10 @@ class AccountService(Service):
 
         finalPath = os.path.join(self.tosPath, tosFilename)
 
-        with open(finalPath, "r") as file:
+        with open(finalPath, "r", encoding="utf-8") as file:
             tos_content = file.read()
 
-        with open(finalPath.replace(".txt", ".version"), "r") as file:
+        with open(finalPath.replace(".txt", ".version"), "r", encoding="utf-8") as file:
             tos_version = file.read()
 
         return tos_content, tos_version
@@ -442,7 +442,7 @@ class AccountService(Service):
         ).exists():
             countryListFilename = countryListFilename.replace(".", f".{locale}.")
 
-        with open(os.path.join(self.countryListPath, "overrides.json"), "r") as file:
+        with open(os.path.join(self.countryListPath, "overrides.json"), "r", encoding="utf-8") as file:
             overrides = json.load(file)
 
             if settings.DEBUG:
@@ -454,7 +454,7 @@ class AccountService(Service):
 
             self.countryConfigOverrides = overrides
 
-        with open(os.path.join(self.countryListPath, countryListFilename), "r") as file:
+        with open(os.path.join(self.countryListPath, countryListFilename), "r", encoding="utf-8") as file:
             reader = csv.DictReader(file)
 
             for row in reader:
