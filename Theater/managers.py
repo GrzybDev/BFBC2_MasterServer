@@ -415,6 +415,18 @@ class GameManager(models.Manager):
         game = self.get(lobby_id=lobby_id, id=game_id)
         game.joiningPlayers += 1
         game.save()
+    
+    @sync_to_async
+    def decrement_joining_players(self, lobby_id, game_id):
+        game = self.get(lobby_id=lobby_id, id=game_id)
+        game.joiningPlayers -= 1
+        game.save()
+
+    @sync_to_async
+    def increment_active_players(self, lobby_id, game_id):
+        game = self.get(lobby_id=lobby_id, id=game_id)
+        game.activePlayers += 1
+        game.save()
 
     @sync_to_async
     def decrement_active_players(self, lobby_id, game_id):
