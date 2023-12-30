@@ -1,5 +1,6 @@
 from BFBC2_MasterServer.packet import Packet
 from Theater.models import Game
+from django.core.cache import cache
 
 
 async def player_exited(connection, message):
@@ -7,12 +8,16 @@ async def player_exited(connection, message):
     lid = message.Get("LID")
     pid = message.Get("PID")
 
-    kickPacket = Packet(service="KICK")
-    kickPacket.Set("GID", gid)
-    kickPacket.Set("LID", lid)
-    kickPacket.Set("PID", pid)
+    playerSession = cache.get(f"players:{gid}:{pid}")
 
-    yield kickPacket
+    await connection.send_remote_message(playerSession, "KICK", {
+        "GID": gid,
+        "LID": lid,
+        "PID": pid
+    })
+    
+    cache.delete(f"players:{gid}:{connection.pid}")
+    cache.delete(f"playerData:{gid}:{connection.pid}")
 
     await Game.objects.decrement_active_players(lid, gid)
 

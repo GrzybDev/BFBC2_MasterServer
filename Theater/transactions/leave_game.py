@@ -19,9 +19,6 @@ async def leave_game(connection, message):
 
         cache.set(f"queue:{gid}", ";".join(queue_list), timeout=None)
 
-        cache.delete(f"players:{gid}:{connection.pid}")
-        cache.delete(f"playerData:{gid}:{connection.pid}")
-
     connection.pid = None
 
     response = Packet()

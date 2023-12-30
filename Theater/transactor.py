@@ -47,6 +47,7 @@ class Transaction(Enum):
     QueueUpdate = "UQUE"
     QueueInfoNotice = "QLEN"
     DequeuePlayer = "DQEG"
+    RemovePlayer = "KICK"
 
 
 class TransactionKind(Enum):
@@ -64,6 +65,7 @@ class Transactor:
         Transaction.QueueInfoNotice,
         Transaction.EnterGameRequest,
         Transaction.EnterGameNotice,
+        Transaction.RemovePlayer,
     ]
 
     def __init__(self, connection):
@@ -87,6 +89,7 @@ class Transactor:
         self.transactions[Transaction.Echo] = echo
         self.transactions[Transaction.QueueUpdate] = queue_update
         self.transactions[Transaction.DequeuePlayer] = dequeue_player
+        self.transactions[Transaction.RemovePlayer] = ping
 
     async def start(self, service, data):
         service = Transaction(service)
@@ -177,10 +180,10 @@ class Transactor:
 
                 if response.kind is None:
                     response.kind = TransactionKind.NormalResponse.value
-
-                if transaction != Transaction.Ping:
+                
+                if transaction != Transaction.Ping and transaction != Transaction.RemovePlayer:
                     response.Set("TID", self.tid)
-                elif response.service == "KICK":
+                elif transaction == Transaction.RemovePlayer:
                     # Kick packet doesn't need TID
                     pass 
                 else:
