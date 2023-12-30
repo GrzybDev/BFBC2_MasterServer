@@ -180,6 +180,9 @@ class Transactor:
 
                 if transaction != Transaction.Ping:
                     response.Set("TID", self.tid)
+                if response.service == "KICK":
+                    # Kick packet doesn't need TID
+                    pass 
                 else:
                     response.Set("TID", 0)
 
