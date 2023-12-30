@@ -19,7 +19,11 @@ async def player_exited(connection, message):
     cache.delete(f"players:{gid}:{connection.pid}")
     cache.delete(f"playerData:{gid}:{connection.pid}")
 
-    await Game.objects.decrement_active_players(lid, gid)
+    if pid in connection.connectingPlayers:
+        connection.connectingPlayers.remove(pid)
+        await Game.objects.decrement_joining_players(lid, gid)
+    else:
+        await Game.objects.decrement_active_players(lid, gid)
 
     response = Packet()
     yield response

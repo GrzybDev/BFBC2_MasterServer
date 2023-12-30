@@ -7,6 +7,7 @@ async def player_entered(connection, message):
     gid = message.Get("GID")
     pid = message.Get("PID")
     
+    connection.connectingPlayers.remove(pid)
     await Game.objects.decrement_joining_players(lid, gid)
     await Game.objects.increment_active_players(lid, gid)
 

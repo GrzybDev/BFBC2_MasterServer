@@ -28,6 +28,8 @@ class TheaterConsumer(BFBC2Consumer):
     lid = None
     gid = None
 
+    connectingPlayers = []
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.transactor = Transactor(self)
