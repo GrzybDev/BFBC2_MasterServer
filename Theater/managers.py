@@ -4,7 +4,9 @@ from base64 import b64encode
 from asgiref.sync import sync_to_async
 from django.db import models
 from django.db.models import Q
+import uuid
 
+from Theater.enumerators.JoinMode import JoinMode
 
 class LobbyManager(models.Manager):
     @sync_to_async
@@ -51,7 +53,30 @@ class LobbyManager(models.Manager):
 class GameManager(models.Manager):
     @sync_to_async
     def create_game(self, lobby, owner, address, clientVersion, clientPlatform, data):
+        ugid = data.Get("UGID")
         secret = data.Get("SECRET")
+
+        # If there's a game with UGID, return it if the secret matches
+        game = self.filter(ugid=ugid).first()
+
+        if game:
+            if game.secret == secret and game.joinMode != JoinMode.OPEN:
+                # Refresh the ekey
+                game.ekey = b64encode(os.urandom(16)).decode()
+                game.joinMode = JoinMode.OPEN
+                game.save()
+
+                return game, {
+                    "LID": game.lobby.id,
+                    "GID": game.id,
+                    "MAX-PLAYERS": game.maxPlayers,
+                    "EKEY": game.ekey,
+                    "UGID": game.ugid,
+                    "JOIN": game.joinMode,
+                    "SECRET": game.secret,
+                    "J": game.joinMode,
+                }
+        
 
         game = self.create(
             lobby=lobby,
@@ -71,7 +96,7 @@ class GameManager(models.Manager):
             clientVersion=clientVersion,
             serverVersion=data.Get("B-version"),
             joinMode=data.Get("JOIN"),
-            ugid=data.Get("UGID"),
+            ugid=uuid.uuid4().hex[:16],
             ekey=b64encode(os.urandom(16)).decode(),
             secret=secret if len(secret) != 0 else b64encode(os.urandom(64)).decode(),
         )
@@ -90,7 +115,11 @@ class GameManager(models.Manager):
     @sync_to_async
     def delete_game(self, gid):
         game = self.get(id=gid)
-        game.delete()
+        game.joinMode = JoinMode.CLOSED
+        game.activePlayers = 0
+        game.joiningPlayers = 0
+        game.queuedPlayers = 0
+        game.save()
 
     @sync_to_async
     def update_game(self, lid, gid, key, value):
@@ -185,7 +214,7 @@ class GameManager(models.Manager):
     def find_game(self, gamemode, level):
         gamemodes = gamemode.split("|")
 
-        q = Q(gameMode=gamemodes[0])
+        q = Q(gameMode=gamemodes[0], joinMode=JoinMode.OPEN)
         gamemodes.pop(0)
 
         for gamemode in gamemodes:
@@ -206,7 +235,7 @@ class GameManager(models.Manager):
     @sync_to_async
     def get_games(self, lobby, gameType, gameMod, count, minGID, **filters):
         filtered_games = self.filter(
-            id__gt=int(minGID), lobby=lobby, gameType=gameType, gameMod=gameMod
+            id__gt=int(minGID), lobby=lobby, gameType=gameType, gameMod=gameMod, joinMode=JoinMode.OPEN
         )
 
         if count > 0:
