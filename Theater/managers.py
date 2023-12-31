@@ -63,7 +63,7 @@ class GameManager(models.Manager):
             if game.secret == secret and game.joinMode != JoinMode.OPEN:
                 # Refresh the ekey
                 game.ekey = b64encode(os.urandom(16)).decode()
-                game.joinMode = JoinMode.OPEN
+                game.joinMode = data.Get("JOIN")
                 game.save()
 
                 return game, {
