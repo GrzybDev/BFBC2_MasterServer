@@ -1,0 +1,6 @@
+THEATER_HOST = "{clientString}.theater.ea.com"
+THEATER_CLIENT_PORT = 18395
+THEATER_SERVER_PORT = 18326
+
+MESSENGER_IP = "messaging.ea.com"
+MESSENGER_PORT = 13505
