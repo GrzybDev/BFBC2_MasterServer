@@ -11,7 +11,7 @@ from bfbc2_masterserver.messages.plasma.connect.Hello import HelloRequest, Hello
 from bfbc2_masterserver.messages.plasma.DomainPartition import DomainPartition
 from bfbc2_masterserver.services.service import Service
 from bfbc2_masterserver.settings import (
-    MESSENGER_IP,
+    MESSENGER_HOST,
     MESSENGER_PORT,
     THEATER_CLIENT_PORT,
     THEATER_HOST,
@@ -35,13 +35,42 @@ class ConnectService(Service):
         self.resolvers[TXN.Hello] = self.__handle_hello
 
     def _get_resolver(self, txn):
+        """
+        Gets the resolver for a given transaction.
+
+        Parameters:
+            txn (str): The name of the transaction.
+
+        Returns:
+            The resolver function for the transaction.
+        """
         return self.resolvers[TXN(txn)]
 
     def _get_generator(self, txn):
+        """
+        Gets the generator for a given transaction.
+
+        Parameters:
+            txn (str): The name of the transaction.
+
+        Returns:
+            The generator function for the transaction.
+        """
         return self.generators[TXN(txn)]
 
     def __handle_hello(self, data):
-        """Initial packet sent by client, used to determine client type, and other connection details"""
+        """
+        Handles the initial packet sent by client, used to determine client type, and other connection details
+
+        This method is used to determine the client type and other connection details. If the Plasma object is already initialized, a system error is returned. Otherwise, the data is validated and the Plasma object is initialized.
+
+        Parameters:
+            data (dict): The incoming data.
+
+        Returns:
+            A TransactionError if the Plasma object is already initialized or if the data is invalid.
+            A HelloResponse if the data is valid.
+        """
 
         if self.plasma.initialized:
             return TransactionError(ErrorCode.SYSTEM_ERROR)
@@ -57,7 +86,7 @@ class ConnectService(Service):
         theater_ip = THEATER_HOST.format(clientString=data.clientString)
         theater_port = (
             THEATER_CLIENT_PORT
-            if data.clientType == ClientType.CLIENT
+            if data.clientType == ClientType.Client
             else THEATER_SERVER_PORT
         )
 
@@ -70,7 +99,7 @@ class ConnectService(Service):
             activityTimeoutSecs=0,  # Client sets this to 200 (3.33 minutes) if set to 0
             curTime=datetime.now(),
             domainPartition=domainPartition,  # Game doesn't seem to care about this, but it's sent by the original server
-            messengerIp=MESSENGER_IP,
+            messengerIp=MESSENGER_HOST,
             messengerPort=MESSENGER_PORT,
             theaterIp=theater_ip,
             theaterPort=theater_port,

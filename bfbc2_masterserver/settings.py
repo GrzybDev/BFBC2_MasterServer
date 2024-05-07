@@ -1,6 +1,12 @@
+# The host address for the theater server, where {clientString} is a placeholder for the client string
 THEATER_HOST = "{clientString}.theater.ea.com"
+
+# The port number used by the client to connect to the theater server
 THEATER_CLIENT_PORT = 18395
+# The port number used by the server to connect to the theater server
 THEATER_SERVER_PORT = 18326
 
-MESSENGER_IP = "messaging.ea.com"
+# The host address for the messenger server
+MESSENGER_HOST = "messaging.ea.com"
+# The port number used by the messenger server
 MESSENGER_PORT = 13505

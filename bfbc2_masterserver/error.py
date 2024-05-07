@@ -2,14 +2,34 @@ from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 
 
 class TransactionSkip:
-    pass
+    """
+    The TransactionSkip class is used to indicate that a transaction should be skipped (no response).
+    """
 
 
+# Exception class for transaction errors
 class TransactionException(Exception):
-    pass
+    """
+    The TransactionException class is a subclass of the Exception class.
+
+    This class is used to represent exceptions that occur during transactions.
+    """
 
 
 class TransactionError:
+    """
+    The TransactionError class is used to represent a transaction error.
+
+    Attributes:
+        errorCode (int): The error code associated with the error.
+        localizedMessage (str): The localized message for the error.
+        errorContainer (dict): The container for additional error data.
+
+    Methods:
+        __init__(self, code: ErrorCode, container: dict = {}): Initializes a new instance of the TransactionError class.
+        __get_localized_message(self, code: ErrorCode): Returns the localized message for a given error code.
+    """
+
     errorCode: int
     localizedMessage: str
     errorContainer: dict
