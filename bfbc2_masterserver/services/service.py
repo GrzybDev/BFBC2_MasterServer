@@ -68,9 +68,8 @@ class Service(ABC):
         Returns:
             The result of the resolver function.
         """
-        txn = data["TXN"]
 
-        resolver = self._get_resolver(txn)
+        resolver = self._get_resolver(data["TXN"])
         return resolver(data)
 
     def start_transaction(self, txn, data):
