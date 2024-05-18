@@ -223,13 +223,7 @@ class Plasma:
         loop.create_task(send_coroutine)
 
     def __handle_request(self, service: PlasmaService, message: Message):
-        match service:
-            # If the service is ConnectService, handle the request with the ConnectService's handle method
-            case PlasmaService.ConnectService:
-                return self.services[service].handle(message.data)
-            # If the service is not recognized, raise an error
-            case _:
-                raise ValueError(f"Unknown service: {service}")
+        return self.services[service].handle(message.data)
 
     async def __send(self, message: Message, addTransactionID=True):
         # If the message type is not an InitialError, add the transaction ID to the message type
