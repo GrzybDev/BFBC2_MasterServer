@@ -35,6 +35,9 @@ class Plasma:
 
     initialized = False
 
+    disconnectReason = None
+    disconnectMessage = None
+
     clientLocale: ClientLocale
     clientType: ClientType
     fragmentSize: int

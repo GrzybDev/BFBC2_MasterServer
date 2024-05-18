@@ -1,6 +1,5 @@
 import asyncio
 import random
-import re
 import string
 from datetime import datetime
 
@@ -16,6 +15,7 @@ from bfbc2_masterserver.messages.plasma.connect.GetPingSites import (
     GetPingSitesRequest,
     GetPingSitesResponse,
 )
+from bfbc2_masterserver.messages.plasma.connect.Goodbye import GoodbyeRequest
 from bfbc2_masterserver.messages.plasma.connect.Hello import HelloRequest, HelloResponse
 from bfbc2_masterserver.messages.plasma.connect.MemCheck import (
     MemCheckRequest,
@@ -48,6 +48,7 @@ class ConnectService(Service):
         self.resolvers[Transaction.MemCheck] = self.__handle_memcheck
         self.resolvers[Transaction.GetPingSites] = self.__handle_get_ping_sites
         self.resolvers[Transaction.Ping] = self.__handle_ping
+        self.resolvers[Transaction.Goodbye] = self.__handle_goodbye
         self.resolvers[Transaction.Suicide] = self.__handle_suicide
 
         self.generators[Transaction.MemCheck] = self.__create_memcheck
@@ -276,6 +277,21 @@ class ConnectService(Service):
             data = PingRequest.model_validate(data)
         except ValidationError:
             return TransactionError(ErrorCode.PARAMETERS_ERROR)
+
+        return TransactionSkip()
+
+    def __handle_goodbye(self, data):
+        """
+        Handles the goodbye request
+        """
+
+        try:
+            data = GoodbyeRequest.model_validate(data)
+        except ValidationError:
+            return TransactionError(ErrorCode.PARAMETERS_ERROR)
+
+        self.plasma.disconnectReason = data.reason
+        self.plasma.disconnectMessage = data.message
 
         return TransactionSkip()
 
