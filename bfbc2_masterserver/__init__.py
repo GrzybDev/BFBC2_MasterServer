@@ -81,4 +81,5 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.close(code=1002, reason=str(e))
             break
 
+    plasma.on_disconnect()
     logger.info(msg=f"{host}:{port} -> Disconnected")

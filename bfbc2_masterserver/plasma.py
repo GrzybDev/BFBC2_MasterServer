@@ -1,9 +1,13 @@
+import asyncio
 import logging
 from base64 import b64encode
 
+from bfbc2_masterserver.enumerators.client.ClientLocale import ClientLocale
+from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.message.MessageType import MessageType
 from bfbc2_masterserver.enumerators.plasma.PlasmaService import PlasmaService
+from bfbc2_masterserver.enumerators.Transaction import Transaction
 from bfbc2_masterserver.error import TransactionError, TransactionSkip
 from bfbc2_masterserver.message import HEADER_LENGTH, Message
 from bfbc2_masterserver.services.plasma.connect import ConnectService
@@ -31,8 +35,14 @@ class Plasma:
 
     initialized = False
 
+    clientLocale: ClientLocale
+    clientType: ClientType
     fragmentSize: int
+
     transactionID: int
+
+    timerPing: asyncio.TimerHandle
+    timerMemCheck: asyncio.TimerHandle
 
     def __init__(self, ws):
         """
@@ -228,3 +238,10 @@ class Plasma:
 
         # Log the sent message
         logger.debug(f"{self.ws.client.host}:{self.ws.client.port} <- {message}")
+
+    def on_disconnect(self):
+        """
+        Handles the client disconnecting.
+        """
+        self.timerPing.cancel()
+        self.timerMemCheck.cancel()
