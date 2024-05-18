@@ -77,7 +77,7 @@ async def websocket_endpoint(websocket: WebSocket):
             break
         except Exception as e:
             # Log any exceptions and close the connection
-            logger.error(f"{host}:{port} -> {e}")
+            logger.exception(f"{host}:{port} -> {e}", exc_info=True)
             await websocket.close(code=1002, reason=str(e))
             break
 
