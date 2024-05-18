@@ -1,5 +1,10 @@
 from abc import ABC, abstractmethod
 
+from pydantic import ValidationError
+
+from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
+from bfbc2_masterserver.error import TransactionError
+
 
 class Service(ABC):
     """
@@ -69,7 +74,13 @@ class Service(ABC):
             The result of the resolver function.
         """
 
-        resolver = self._get_resolver(data["TXN"])
+        resolver, model = self._get_resolver(data["TXN"])
+
+        try:
+            data = model.model_validate(data)
+        except ValidationError:
+            return TransactionError(ErrorCode.PARAMETERS_ERROR)
+
         return resolver(data)
 
     def start_transaction(self, txn, data):

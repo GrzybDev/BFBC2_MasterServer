@@ -3,7 +3,6 @@ import random
 import string
 from datetime import datetime
 
-from pydantic import ValidationError
 
 from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
@@ -21,9 +20,10 @@ from bfbc2_masterserver.messages.plasma.connect.MemCheck import (
     MemCheckRequest,
     MemCheckResult,
 )
-from bfbc2_masterserver.messages.plasma.connect.Ping import PingRequest
+from bfbc2_masterserver.messages.plasma.connect.Ping import PingRequest, PingResponse
 from bfbc2_masterserver.messages.plasma.DomainPartition import DomainPartition
 from bfbc2_masterserver.messages.plasma.MemCheck import MemCheck
+from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
 from bfbc2_masterserver.services.service import Service
 from bfbc2_masterserver.settings import (
     CLIENT_INITIAL_MEMCHECK_INTERVAL,
@@ -44,12 +44,15 @@ class ConnectService(Service):
     def __init__(self, plasma) -> None:
         super().__init__(plasma)
 
-        self.resolvers[Transaction.Hello] = self.__handle_hello
-        self.resolvers[Transaction.MemCheck] = self.__handle_memcheck
-        self.resolvers[Transaction.GetPingSites] = self.__handle_get_ping_sites
-        self.resolvers[Transaction.Ping] = self.__handle_ping
-        self.resolvers[Transaction.Goodbye] = self.__handle_goodbye
-        self.resolvers[Transaction.Suicide] = self.__handle_suicide
+        self.resolvers[Transaction.Hello] = self.__handle_hello, HelloRequest
+        self.resolvers[Transaction.MemCheck] = self.__handle_memcheck, MemCheckResult
+        self.resolvers[Transaction.GetPingSites] = (
+            self.__handle_get_ping_sites,
+            GetPingSitesRequest,
+        )
+        self.resolvers[Transaction.Ping] = self.__handle_ping, PingResponse
+        self.resolvers[Transaction.Goodbye] = self.__handle_goodbye, GoodbyeRequest
+        self.resolvers[Transaction.Suicide] = self.__handle_suicide, PlasmaTransaction
 
         self.generators[Transaction.MemCheck] = self.__create_memcheck
         self.generators[Transaction.Ping] = self.__create_ping
@@ -78,7 +81,7 @@ class ConnectService(Service):
         """
         return self.generators[Transaction(txn)]
 
-    def __handle_hello(self, data):
+    def __handle_hello(self, data: HelloRequest):
         """
         Handles the initial packet sent by client, used to determine client type, and other connection details
 
@@ -94,11 +97,6 @@ class ConnectService(Service):
 
         if self.plasma.initialized:
             return TransactionError(ErrorCode.SYSTEM_ERROR)
-
-        try:
-            data = HelloRequest.model_validate(data)
-        except ValidationError:
-            return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
         theater_ip = THEATER_HOST.format(clientString=data.clientString)
         theater_port = (
@@ -157,7 +155,7 @@ class ConnectService(Service):
 
         return Message(data=response.model_dump(exclude_none=True))
 
-    def __create_memcheck(self, data):
+    def __create_memcheck(self, data: dict):
         """
         Creates a memcheck request
         """
@@ -169,15 +167,10 @@ class ConnectService(Service):
 
         return Message(data=request.model_dump(exclude_none=True))
 
-    def __handle_memcheck(self, data):
+    def __handle_memcheck(self, data: MemCheckResult):
         """
         Handles the memcheck request
         """
-
-        try:
-            data = MemCheckResult.model_validate(data)
-        except ValidationError:
-            return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
         return TransactionSkip()
 
@@ -211,7 +204,7 @@ class ConnectService(Service):
             self.__make_memcheck,
         )
 
-    def __handle_get_ping_sites(self, data):
+    def __handle_get_ping_sites(self, data: GetPingSitesRequest):
         """
         Handles the request for ping sites
 
@@ -223,11 +216,6 @@ class ConnectService(Service):
         Returns:
             A GetPingSitesResponse with an empty list of ping sites.
         """
-
-        try:
-            data = GetPingSitesRequest.model_validate(data)
-        except ValidationError:
-            return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
         # Original server always sends 4 ping sites
         # {
@@ -260,7 +248,7 @@ class ConnectService(Service):
         response = GetPingSitesResponse(pingSite=ping_sites, minPingSitesToPing=0)
         return Message(data=response.model_dump(exclude_none=True))
 
-    def __create_ping(self, data):
+    def __create_ping(self, data: dict):
         """
         Creates a ping request
         """
@@ -268,34 +256,24 @@ class ConnectService(Service):
         request = PingRequest()
         return Message(data=request.model_dump(exclude_none=True))
 
-    def __handle_ping(self, data):
+    def __handle_ping(self, data: PingResponse):
         """
         Handles the ping request
         """
 
-        try:
-            data = PingRequest.model_validate(data)
-        except ValidationError:
-            return TransactionError(ErrorCode.PARAMETERS_ERROR)
-
         return TransactionSkip()
 
-    def __handle_goodbye(self, data):
+    def __handle_goodbye(self, data: GoodbyeRequest):
         """
         Handles the goodbye request
         """
-
-        try:
-            data = GoodbyeRequest.model_validate(data)
-        except ValidationError:
-            return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
         self.plasma.disconnectReason = data.reason
         self.plasma.disconnectMessage = data.message
 
         return TransactionSkip()
 
-    def __handle_suicide(self, data):
+    def __handle_suicide(self, data: dict):
         """
         Client support this message, but I'm not sure what this Transaction is supposed to do,
         we ignore it - never captured this packet from original master server so I suppose it's another leftover.

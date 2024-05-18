@@ -1,8 +1,4 @@
-from pydantic import ValidationError
-
-from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.Transaction import Transaction
-from bfbc2_masterserver.error import TransactionError
 from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.messages.plasma.account.GetCountryList import (
     GetCountryListRequest,
@@ -22,8 +18,11 @@ class AccountService(Service):
     def __init__(self, plasma) -> None:
         super().__init__(plasma)
 
-        self.resolvers[Transaction.GetCountryList] = self.__handle_get_country_list
-        self.resolvers[Transaction.NuGetTos] = self.__handle_nu_get_tos
+        self.resolvers[Transaction.GetCountryList] = (
+            self.__handle_get_country_list,
+            GetCountryListRequest,
+        )
+        self.resolvers[Transaction.NuGetTos] = self.__handle_nu_get_tos, NuGetTosRequest
 
     def _get_resolver(self, txn):
         """
@@ -49,7 +48,7 @@ class AccountService(Service):
         """
         return self.generators[Transaction(txn)]
 
-    def __handle_get_country_list(self, data):
+    def __handle_get_country_list(self, data: GetCountryListRequest):
         """
         Handles the GetCountryList transaction.
 
@@ -60,18 +59,13 @@ class AccountService(Service):
             The response to the transaction.
         """
 
-        try:
-            data = GetCountryListRequest.model_validate(data)
-        except ValidationError:
-            return TransactionError(ErrorCode.PARAMETERS_ERROR)
-
         response = GetCountryListResponse(
             countryList=getLocalizedCountryList(self.plasma.clientLocale)
         )
 
         return Message(data=response.model_dump(exclude_none=True))
 
-    def __handle_nu_get_tos(self, data):
+    def __handle_nu_get_tos(self, data: NuGetTosRequest):
         """
         Handles the NuGetTos transaction.
 
@@ -81,11 +75,6 @@ class AccountService(Service):
         Returns:
             The response to the transaction.
         """
-
-        try:
-            data = NuGetTosRequest.model_validate(data)
-        except ValidationError:
-            return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
         # In theory everything shows that here we should send the TOS for the selected country code.
         # However, this doesn't seem to be the case. Original server sends the same TOS for every country code, only (game) language seems to have any effect.
