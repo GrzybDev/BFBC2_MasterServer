@@ -59,14 +59,19 @@ async def websocket_endpoint(websocket: WebSocket):
             message_type = MessageType(message.type & 0xFF000000)
 
             # Determine message source
-            if message_type == MessageType.PlasmaRequest:
+            if message_type in [MessageType.PlasmaRequest, MessageType.PlasmaResponse]:
                 message_from = MessageFrom.Plasma
-            else:
+            elif False:  # TODO: Add Theater message types
                 message_from = MessageFrom.Theater
+            else:
+                raise ValueError("Unknown message type")
 
             if message_from == MessageFrom.Plasma:
                 # Handle Plasma messages
                 await plasma.handle_transaction(message, message_type)
+            else:
+                # Handle Theater messages
+                pass
         except WebSocketDisconnect:
             # Break the loop if client disconnects
             break

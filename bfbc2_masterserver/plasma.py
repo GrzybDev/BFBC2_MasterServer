@@ -94,7 +94,7 @@ class Plasma:
         if not self.initialized and message_type != MessageType.PlasmaRequest:
             response = TransactionError(ErrorCode.NOT_INITIALIZED)
         # If the message type is a request, handle the request
-        elif message_type == MessageType.PlasmaRequest:
+        elif message_type in [MessageType.PlasmaRequest, MessageType.PlasmaResponse]:
             response = self.__handle_request(service, message)
         # If the message type is not valid, raise an error
         else:
