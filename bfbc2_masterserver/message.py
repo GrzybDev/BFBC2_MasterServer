@@ -48,17 +48,17 @@ class Message:
             kwargs: Arbitrary keyword arguments. Expected keys are "raw_data", "service", "type", and "data".
         """
 
-        self.data = {}
         raw_data = kwargs.get("raw_data", None)
 
         if raw_data is not None:
             # Create message from bytes (used to parse incoming messages)
+            self.data.clear()  # Clear the data dictionary before parsing
             self.__parse_raw_data(raw_data)
         else:
             # Create message from arguments (used to create outgoing messages)
             self.service = kwargs.get("service", None)
             self.type = kwargs.get("type", None)
-            self.data = kwargs.get("data", None)
+            self.data = kwargs.get("data", {})
 
     def __str__(self):
         """
