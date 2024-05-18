@@ -5,7 +5,10 @@ class Transaction(Enum):
     # Plasma (Connect)
     Hello = "Hello"
     MemCheck = "MemCheck"
+    GetPingSites = "GetPingSites"
     Ping = "Ping"
     Goodbye = "Goodbye"
     Suicide = "Suicide"
-    GetPingSites = "GetPingSites"
+
+    # Plasma (Account)
+    GetCountryList = "GetCountryList"

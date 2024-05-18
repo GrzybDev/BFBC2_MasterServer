@@ -10,6 +10,7 @@ from bfbc2_masterserver.enumerators.plasma.PlasmaService import PlasmaService
 from bfbc2_masterserver.enumerators.Transaction import Transaction
 from bfbc2_masterserver.error import TransactionError, TransactionSkip
 from bfbc2_masterserver.message import HEADER_LENGTH, Message
+from bfbc2_masterserver.services.plasma.account import AccountService
 from bfbc2_masterserver.services.plasma.connect import ConnectService
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ class Plasma:
 
         # Register services
         self.services[PlasmaService.ConnectService] = ConnectService(self)
+        self.services[PlasmaService.AccountService] = AccountService(self)
 
     async def handle_transaction(self, message: Message, message_type: MessageType):
         """
