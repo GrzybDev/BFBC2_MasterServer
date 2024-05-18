@@ -156,6 +156,9 @@ class ConnectService(Service):
         return Message(data=response.model_dump(exclude_none=True))
 
     def __create_memcheck(self, data):
+        """
+        Creates a memcheck request
+        """
         request = MemCheckRequest(
             memcheck=MemCheck(),
             type=0,
@@ -165,6 +168,10 @@ class ConnectService(Service):
         return Message(data=request.model_dump(exclude_none=True))
 
     def __handle_memcheck(self, data):
+        """
+        Handles the memcheck request
+        """
+
         try:
             data = MemCheckResult.model_validate(data)
         except ValidationError:
@@ -203,6 +210,18 @@ class ConnectService(Service):
         )
 
     def __handle_get_ping_sites(self, data):
+        """
+        Handles the request for ping sites
+
+        This method is used to determine the ping sites to send to the client. The original server always sends 4 ping sites, but we don't have any ping sites to send, so we just return an empty list.
+
+        Parameters:
+            data (dict): The incoming data.
+
+        Returns:
+            A GetPingSitesResponse with an empty list of ping sites.
+        """
+
         try:
             data = GetPingSitesRequest.model_validate(data)
         except ValidationError:
@@ -240,10 +259,18 @@ class ConnectService(Service):
         return Message(data=response.model_dump(exclude_none=True))
 
     def __create_ping(self, data):
+        """
+        Creates a ping request
+        """
+
         request = PingRequest()
         return Message(data=request.model_dump(exclude_none=True))
 
     def __handle_ping(self, data):
+        """
+        Handles the ping request
+        """
+
         try:
             data = PingRequest.model_validate(data)
         except ValidationError:
