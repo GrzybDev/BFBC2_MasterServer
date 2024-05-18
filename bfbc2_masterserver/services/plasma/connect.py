@@ -48,6 +48,7 @@ class ConnectService(Service):
         self.resolvers[Transaction.MemCheck] = self.__handle_memcheck
         self.resolvers[Transaction.GetPingSites] = self.__handle_get_ping_sites
         self.resolvers[Transaction.Ping] = self.__handle_ping
+        self.resolvers[Transaction.Suicide] = self.__handle_suicide
 
         self.generators[Transaction.MemCheck] = self.__create_memcheck
         self.generators[Transaction.Ping] = self.__create_ping
@@ -277,3 +278,11 @@ class ConnectService(Service):
             return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
         return TransactionSkip()
+
+    def __handle_suicide(self, data):
+        """
+        Client support this message, but I'm not sure what this Transaction is supposed to do,
+        we ignore it - never captured this packet from original master server so I suppose it's another leftover.
+        """
+
+        raise NotImplementedError()
