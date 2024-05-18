@@ -174,6 +174,41 @@ class Plasma:
         # Increment the transaction id for the next transaction
         self.transactionID += 1
 
+    def start_transaction(self, service: PlasmaService, txn: Transaction, data: dict):
+        """
+        Starts a transaction by getting the appropriate generator and calling it.
+
+        Parameters:
+            service (PlasmaService): The service associated with the transaction.
+            txn (Transaction): The transaction to start.
+            data (dict): The data for the transaction.
+        """
+
+        # Transactions started by the server are always "SimpleResponse" kind, and have no transaction ID
+
+        # Prepare the message
+        message_to_send = self.services[service].start_transaction(txn, data)
+
+        if isinstance(message_to_send, TransactionError):
+            message = Message()
+            message.service = service.value
+            message.type = MessageType.PlasmaResponse.value
+            message.data["TXN"] = txn
+            message.data["errorCode"] = message_to_send.errorCode
+            message.data["localizedMessage"] = message_to_send.localizedMessage
+            message.data["errorContainer"] = message_to_send.errorContainer
+
+            send_coroutine = self.__send(message, addTransactionID=False)
+        else:
+            message_to_send.service = service.value
+            message_to_send.type = MessageType.PlasmaResponse.value
+            message_to_send.data["TXN"] = txn
+
+            send_coroutine = self.__send(message_to_send, addTransactionID=False)
+
+        loop = asyncio.get_event_loop()
+        loop.create_task(send_coroutine)
+
     def __handle_request(self, service: PlasmaService, message: Message):
         match service:
             # If the service is ConnectService, handle the request with the ConnectService's handle method
@@ -183,9 +218,9 @@ class Plasma:
             case _:
                 raise ValueError(f"Unknown service: {service}")
 
-    async def __send(self, message: Message):
+    async def __send(self, message: Message, addTransactionID=True):
         # If the message type is not an InitialError, add the transaction ID to the message type
-        if message.type != MessageType.InitialError.value:
+        if message.type != MessageType.InitialError.value and addTransactionID:
             message.type = message.type & 0xFF000000 | self.transactionID
 
         # Compile the message into bytes and send it to the client
