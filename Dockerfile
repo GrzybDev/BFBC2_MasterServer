@@ -34,4 +34,5 @@ USER bfbc2emu
 EXPOSE 8000
 ENV PORT 8000
 
-CMD ["fastapi", "run", "bfbc2_masterserver"]
+ENTRYPOINT [ "fastapi" ]
+CMD [ "run", "bfbc2_masterserver" ]
