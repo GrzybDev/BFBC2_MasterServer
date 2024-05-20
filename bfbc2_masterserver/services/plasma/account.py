@@ -18,6 +18,18 @@ from bfbc2_masterserver.messages.plasma.account.NuAddAccount import (
     NuAddAccountRequest,
     NuAddAccountResponse,
 )
+from bfbc2_masterserver.messages.plasma.account.NuAddPersona import (
+    NuAddPersonaRequest,
+    NuAddPersonaResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuDisablePersona import (
+    NuDisablePersonaRequest,
+    NuDisablePersonaResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuGetPersonas import (
+    NuGetPersonasRequest,
+    NuGetPersonasResponse,
+)
 from bfbc2_masterserver.messages.plasma.account.NuGetTos import (
     NuGetTosRequest,
     NuGetTosResponse,
@@ -25,6 +37,10 @@ from bfbc2_masterserver.messages.plasma.account.NuGetTos import (
 from bfbc2_masterserver.messages.plasma.account.NuLogin import (
     NuLoginRequest,
     NuLoginResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuLoginPersona import (
+    NuLoginPersonaRequest,
+    NuLoginPersonaResponse,
 )
 from bfbc2_masterserver.services.service import Service
 from bfbc2_masterserver.tools.country_list import getLocalizedCountryList
@@ -46,6 +62,25 @@ class AccountService(Service):
             NuAddAccountRequest,
         )
         self.resolvers[Transaction.NuLogin] = self.__handle_nu_login, NuLoginRequest
+        self.resolvers[Transaction.NuGetPersonas] = (
+            self.__handle_nu_get_personas,
+            NuGetPersonasRequest,
+        )
+
+        self.resolvers[Transaction.NuAddPersona] = (
+            self.__handle_nu_add_persona,
+            NuAddPersonaRequest,
+        )
+
+        self.resolvers[Transaction.NuDisablePersona] = (
+            self.__handle_nu_disable_persona,
+            NuDisablePersonaRequest,
+        )
+
+        self.resolvers[Transaction.NuLoginPersona] = (
+            self.__handle_nu_login_persona,
+            NuLoginPersonaRequest,
+        )
 
     def _get_resolver(self, txn):
         """
@@ -220,4 +255,62 @@ class AccountService(Service):
             encryptedLoginInfo=encryptedLoginInfo,
         )
 
+        return Message(data=response.model_dump(exclude_none=True))
+
+    def __handle_nu_get_personas(self, data: NuGetPersonasRequest):
+        personas = self.database.get_personas(account_id=self.plasma.accountID)
+
+        response = NuGetPersonasResponse(personas=personas)
+        return Message(data=response.model_dump(exclude_none=True))
+
+    def __handle_nu_add_persona(self, data: NuAddPersonaRequest):
+        success = self.database.add_persona(
+            account_id=self.plasma.accountID, name=data.name
+        )
+
+        if isinstance(success, ErrorCode):
+            return TransactionError(success)
+
+        response = NuAddPersonaResponse()
+        return Message(data=response.model_dump(exclude_none=True))
+
+    def __handle_nu_disable_persona(self, data: NuDisablePersonaRequest):
+        success = self.database.disable_persona(
+            account_id=self.plasma.accountID, name=data.name
+        )
+
+        if not success:
+            return TransactionError(ErrorCode.TRANSACTION_DATA_NOT_FOUND)
+
+        response = NuDisablePersonaResponse()
+        return Message(data=response.model_dump(exclude_none=True))
+
+    def __handle_nu_login_persona(self, data: NuLoginPersonaRequest):
+        persona = self.database.get_persona(
+            account_id=self.plasma.accountID, name=data.name
+        )
+
+        if not persona:
+            return TransactionError(ErrorCode.USER_NOT_FOUND)
+
+        # Generate new login key for persona
+        login_key = (
+            "".join(
+                random.choice(string.ascii_letters + string.digits + "-_")
+                for _ in range(27)
+            )
+            + "."
+        )
+
+        persona_id = str(persona["_id"])
+
+        self.plasma.personaID = persona_id
+        self.plasma.personaLoginKey = login_key
+
+        self.redis.set(f"profile:{persona_id}", login_key)
+        self.redis.set(f"persona:{login_key}", persona_id)
+
+        response = NuLoginPersonaResponse(
+            lkey=login_key, profileId=persona_id, userId=self.plasma.accountID
+        )
         return Message(data=response.model_dump(exclude_none=True))

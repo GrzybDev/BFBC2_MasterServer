@@ -43,8 +43,11 @@ class Plasma:
     clientType: ClientType
     fragmentSize: int
 
-    accountID: str
-    loginKey: str
+    accountID: str | None = None
+    profileID: str | None = None
+    loginKey: str | None = None
+    profileLoginKey: str | None = None
+
     transactionID: int
 
     timerPing: asyncio.TimerHandle
@@ -244,3 +247,20 @@ class Plasma:
         """
         self.timerPing.cancel()
         self.timerMemCheck.cancel()
+
+        if self.accountID:
+            self.manager.redis.delete(f"account:{self.accountID}")
+
+            if self.clientType == ClientType.Client:
+                self.manager.CLIENTS.pop(self.accountID, None)
+            else:
+                self.manager.SERVERS.pop(self.accountID, None)
+
+        if self.loginKey:
+            self.manager.redis.delete(f"session:{self.loginKey}")
+
+        if self.profileID:
+            self.manager.redis.delete(f"profile:{self.profileID}")
+
+        if self.profileLoginKey:
+            self.manager.redis.delete(f"persona:{self.profileLoginKey}")

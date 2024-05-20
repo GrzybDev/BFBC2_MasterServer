@@ -4,7 +4,6 @@ from pymongo.database import Database
 
 from bfbc2_masterserver.database.database import BaseDatabase
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
-from bfbc2_masterserver.error import TransactionError
 
 
 class MongoDB(BaseDatabase):
@@ -69,3 +68,31 @@ class MongoDB(BaseDatabase):
             return ErrorCode.INVALID_PASSWORD
 
         return account
+
+    def get_personas(self, account_id):
+        personas = self.database["personas"]
+
+        account_personas = list(personas.find({"account": account_id}))
+        personas_list = []
+
+        for persona in account_personas:
+            personas_list.append(persona["name"])
+
+        return personas_list
+
+    def add_persona(self, account_id, name):
+        personas = self.database["personas"]
+
+        if personas.find_one({"name": name}):
+            return ErrorCode.ALREADY_REGISTERED
+
+        personas.insert_one({"account": account_id, "name": name})
+        return True
+
+    def disable_persona(self, account_id, name):
+        personas = self.database["personas"]
+        return personas.delete_one({"account": account_id, "name": name})
+
+    def get_persona(self, account_id, name):
+        personas = self.database["personas"]
+        return personas.find_one({"account": account_id, "name": name})

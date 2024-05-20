@@ -79,17 +79,6 @@ class Manager:
             # Clean up
             plasma.on_disconnect()
 
-            if plasma.accountID:
-                self.redis.delete(f"account:{plasma.accountID}")
-
-                if plasma.clientType == ClientType.Client:
-                    self.CLIENTS.pop(plasma.accountID, None)
-                else:
-                    self.SERVERS.pop(plasma.accountID, None)
-
-            if plasma.loginKey:
-                self.redis.delete(f"session:{plasma.loginKey}")
-
             if plasma.disconnectReason:
                 logger.info(
                     msg=f"{host}:{port} -> Disconnected: {plasma.disconnectReason} ({plasma.disconnectMessage})"

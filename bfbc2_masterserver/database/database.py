@@ -25,3 +25,19 @@ class BaseDatabase(ABC):
     @abstractmethod
     def login(self, **kwargs):
         raise NotImplementedError()
+
+    @abstractmethod
+    def get_personas(self, account_id) -> list[str]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def add_persona(self, account_id, name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def disable_persona(self, account_id, name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_persona(self, account_id, name):
+        raise NotImplementedError()

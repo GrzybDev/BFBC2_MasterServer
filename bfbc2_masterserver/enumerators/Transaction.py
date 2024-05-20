@@ -15,3 +15,7 @@ class Transaction(Enum):
     NuGetTos = "NuGetTos"
     NuAddAccount = "NuAddAccount"
     NuLogin = "NuLogin"
+    NuGetPersonas = "NuGetPersonas"
+    NuAddPersona = "NuAddPersona"
+    NuDisablePersona = "NuDisablePersona"
+    NuLoginPersona = "NuLoginPersona"
