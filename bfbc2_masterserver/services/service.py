@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from pydantic import ValidationError
 
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
+from bfbc2_masterserver.enumerators.Transaction import Transaction
 from bfbc2_masterserver.error import TransactionError
 
 
@@ -22,6 +23,8 @@ class Service(ABC):
         handle(self, data): Handles incoming data by getting the appropriate resolver and calling it.
         start_transaction(self, txn, data): Starts a scheduled transaction by getting the appropriate generator and calling it.
     """
+
+    __exclude_from_validation = [Transaction.NuAddAccount.value]
 
     def __init__(self, plasma) -> None:
         """
@@ -76,10 +79,11 @@ class Service(ABC):
 
         resolver, model = self._get_resolver(data["TXN"])
 
-        try:
-            data = model.model_validate(data)
-        except ValidationError:
-            return TransactionError(ErrorCode.PARAMETERS_ERROR)
+        if data["TXN"] not in self.__exclude_from_validation:
+            try:
+                data = model.model_validate(data)
+            except ValidationError:
+                return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
         return resolver(data)
 

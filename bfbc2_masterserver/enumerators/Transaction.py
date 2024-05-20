@@ -13,3 +13,5 @@ class Transaction(Enum):
     # Plasma (Account)
     GetCountryList = "GetCountryList"
     NuGetTos = "NuGetTos"
+    NuAddAccount = "NuAddAccount"
+    NuLogin = "NuLogin"
