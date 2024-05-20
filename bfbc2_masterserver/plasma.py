@@ -48,7 +48,7 @@ class Plasma:
     timerPing: asyncio.TimerHandle
     timerMemCheck: asyncio.TimerHandle
 
-    def __init__(self, ws):
+    def __init__(self, ws, db, redis):
         """
         Initializes the Plasma object with a WebSocket.
 
@@ -56,6 +56,8 @@ class Plasma:
             ws (WebSocket): The WebSocket object used for communication.
         """
         self.ws = ws
+        self.db = db
+        self.redis = redis
 
         # Register services
         self.services[PlasmaService.ConnectService] = ConnectService(self)

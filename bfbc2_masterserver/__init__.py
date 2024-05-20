@@ -1,7 +1,9 @@
 import logging
+import os
 import sys
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from redis import Redis
 
 from bfbc2_masterserver.enumerators.message.MessageFrom import MessageFrom
 from bfbc2_masterserver.enumerators.message.MessageType import MessageType
@@ -18,6 +20,24 @@ logger.addHandler(stream_handler)
 
 # Create FastAPI application
 app = FastAPI(title="Battlefield: Bad Company 2 Master Server Emulator")
+
+mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_STRING")
+sql_connection_string = os.environ.get("SQL_CONNECTION_STRING")
+
+if mongodb_connection_string is not None:
+    from bfbc2_masterserver.database.mongo.mongo import MongoDB
+
+    database = MongoDB(mongodb_connection_string)
+elif sql_connection_string is not None:
+    # TODO: Implement SQL database support
+    raise NotImplementedError("SQL database support is not implemented yet.")
+else:
+    raise ValueError("No database is configured! Check your environment variables.")
+
+redis = Redis(
+    host=os.environ.get("REDIS_HOST", "localhost"),
+    port=int(os.environ.get("REDIS_PORT", "6379")),
+)
 
 
 # Define WebSocket endpoint
@@ -49,7 +69,7 @@ async def websocket_endpoint(websocket: WebSocket):
     logger.info(f"{host}:{port} -> Connected")
 
     # Create Plasma instance
-    plasma = Plasma(websocket)
+    plasma = Plasma(websocket, database, redis)
 
     # Main loop for handling messages
     while True:
