@@ -43,21 +43,19 @@ class Plasma:
     clientType: ClientType
     fragmentSize: int
 
+    accountID: str
+    loginKey: str
     transactionID: int
 
     timerPing: asyncio.TimerHandle
     timerMemCheck: asyncio.TimerHandle
 
-    def __init__(self, ws, db, redis):
+    def __init__(self, manager, ws):
         """
         Initializes the Plasma object with a WebSocket.
-
-        Args:
-            ws (WebSocket): The WebSocket object used for communication.
         """
+        self.manager = manager
         self.ws = ws
-        self.db = db
-        self.redis = redis
 
         # Register services
         self.services[PlasmaService.ConnectService] = ConnectService(self)

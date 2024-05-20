@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 
 from pydantic import ValidationError
+from redis import Redis
 
+from bfbc2_masterserver.database.database import BaseDatabase
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.Transaction import Transaction
 from bfbc2_masterserver.error import TransactionError
@@ -39,6 +41,8 @@ class Service(ABC):
         self.resolvers = {}
         self.generators = {}
         self.plasma = plasma
+        self.database: BaseDatabase = plasma.manager.database
+        self.redis: Redis = plasma.manager.redis
 
     @abstractmethod
     def _get_resolver(self, txn):

@@ -4,10 +4,12 @@ import string
 from jose import jwt
 from pydantic import ValidationError
 
+from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.Transaction import Transaction
 from bfbc2_masterserver.error import TransactionError
 from bfbc2_masterserver.message import Message
+from bfbc2_masterserver.messages.Client import Client
 from bfbc2_masterserver.messages.plasma.account.GetCountryList import (
     GetCountryListRequest,
     GetCountryListResponse,
@@ -134,7 +136,7 @@ class AccountService(Service):
 
             return TransactionError(ErrorCode.PARAMETERS_ERROR, errContainer)
 
-        registered = self.plasma.db.register(
+        registered = self.database.register(
             nuid=data.nuid,
             password=data.password,
             globalOptin=data.globalOptin,
@@ -156,25 +158,36 @@ class AccountService(Service):
         return Message(data=response.model_dump(exclude_none=True))
 
     def __handle_nu_login(self, data: NuLoginRequest):
-        account = self.plasma.db.login(nuid=data.nuid, password=data.password)
+        account = self.database.login(nuid=data.nuid, password=data.password)
         account_id = str(account["_id"])
 
         if isinstance(account, ErrorCode):
             return TransactionError(account)
+
+        client_type = self.plasma.clientType
+        is_service_account = account.get("serviceAccount", False)
+
+        # Allow login to service account only for servers
+        if client_type == ClientType.Client:
+            if is_service_account:
+                return TransactionError(ErrorCode.SYSTEM_ERROR)
+        else:
+            if not is_service_account:
+                return TransactionError(ErrorCode.SYSTEM_ERROR)
 
         encryptedLoginInfo = None
 
         if data.returnEncryptedInfo:
             encoded_jwt = jwt.encode(
                 {"nuid": data.nuid},
-                self.plasma.db.secret_key,
-                algorithm=self.plasma.db.algorithm,
+                self.database.secret_key,
+                algorithm=self.database.algorithm,
             )
 
             encryptedLoginInfo = encoded_jwt
 
         # Check if this user already have session active
-        user_session = self.plasma.redis.get(f"session:{account_id}")
+        user_session = self.redis.get(f"account:{account_id}")
         login_key = (
             "".join(
                 random.choice(string.ascii_letters + string.digits + "-_")
@@ -183,11 +196,21 @@ class AccountService(Service):
             + "."
         )
 
-        if user_session and not account.get("serviceAccount", False):
-            # TODO: Log out the user from the previous session
-            pass
+        if user_session and not is_service_account:
+            if self.plasma.manager.CLIENTS.get(account_id):
+                old_client: Client = self.plasma.manager.CLIENTS[account_id]
+                old_client.plasma.on_disconnect()
 
-        self.plasma.redis.set(f"session:{account_id}", login_key)
+        self.redis.set(f"account:{account_id}", login_key)
+        self.redis.set(f"session:{login_key}", account_id)
+
+        self.plasma.accountID = account_id
+        self.plasma.loginKey = login_key
+
+        if client_type == ClientType.Client:
+            self.plasma.manager.CLIENTS[account_id] = Client(plasma=self.plasma)
+        else:
+            self.plasma.manager.SERVERS[account_id] = Client(plasma=self.plasma)
 
         response = NuLoginResponse(
             nuid=data.nuid,

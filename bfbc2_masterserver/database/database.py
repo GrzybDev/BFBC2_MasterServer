@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 class BaseDatabase(ABC):
 
     def __init__(self, connection_string: str):
-        self.secret_key = os.environ.get("SECRET_KEY")
+        self.secret_key = os.environ.get("SECRET_KEY", "bfbc2emu")
         self.algorithm = os.environ.get("ALGORITHM_OVERRIDE", "HS256")
 
     def prepare_db(self):
