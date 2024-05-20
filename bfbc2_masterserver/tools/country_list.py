@@ -2815,4 +2815,6 @@ def getLocalizedCountryList(locale: ClientLocale):
 
         countries.append(country)
 
+    # Sort the countries by name
+    countries.sort(key=lambda x: x["description"])
     return countries
