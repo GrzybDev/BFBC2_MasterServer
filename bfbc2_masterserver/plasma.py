@@ -39,6 +39,7 @@ class Plasma:
     disconnectReason = None
     disconnectMessage = None
 
+    clientString: str
     clientLocale: ClientLocale
     clientType: ClientType
     fragmentSize: int
@@ -241,10 +242,18 @@ class Plasma:
         # Log the sent message
         logger.debug(f"{self.ws.client.host}:{self.ws.client.port} <- {message}")
 
-    def on_disconnect(self):
+    def on_disconnect(self, reason: int | None = None):
         """
         Handles the client disconnecting.
         """
+
+        if reason:
+            self.start_transaction(
+                PlasmaService.ConnectService, Transaction.Goodbye, {"reason": reason}
+            )
+
+            return
+
         self.timerPing.cancel()
         self.timerMemCheck.cancel()
 

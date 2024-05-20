@@ -8,6 +8,7 @@ class NuLoginRequest(PlasmaTransaction):
     nuid: str
     password: str
     macAddr: str
+    tosVersion: Optional[str] = None
 
 
 class NuLoginResponse(PlasmaTransaction):

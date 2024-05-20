@@ -19,3 +19,4 @@ class Transaction(Enum):
     NuAddPersona = "NuAddPersona"
     NuDisablePersona = "NuDisablePersona"
     NuLoginPersona = "NuLoginPersona"
+    NuEntitleGame = "NuEntitleGame"

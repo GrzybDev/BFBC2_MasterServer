@@ -3,6 +3,8 @@ import random
 import string
 from datetime import datetime
 
+from httpx import request
+from pydantic import ValidationError
 
 from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
@@ -56,6 +58,7 @@ class ConnectService(Service):
 
         self.generators[Transaction.MemCheck] = self.__create_memcheck
         self.generators[Transaction.Ping] = self.__create_ping
+        self.generators[Transaction.Goodbye] = self.__create_goodbye
 
     def _get_resolver(self, txn):
         """
@@ -125,6 +128,7 @@ class ConnectService(Service):
         # If not set, client will set this value to NULL internally (just like above)
         # No clue what this value is used for
 
+        self.plasma.clientString = data.clientString
         self.plasma.clientLocale = data.locale
         self.plasma.clientType = data.clientType
         self.plasma.fragmentSize = data.fragmentSize
@@ -280,3 +284,11 @@ class ConnectService(Service):
         """
 
         raise NotImplementedError()
+
+    def __create_goodbye(self, data):
+        try:
+            data = GoodbyeRequest.model_validate(data)
+        except ValidationError:
+            return TransactionError(ErrorCode.PARAMETERS_ERROR)
+
+        return Message(data=data.model_dump(exclude_none=True))

@@ -1,5 +1,7 @@
+import os
 import random
 import string
+from operator import is_
 
 from jose import jwt
 from pydantic import ValidationError
@@ -25,6 +27,9 @@ from bfbc2_masterserver.messages.plasma.account.NuAddPersona import (
 from bfbc2_masterserver.messages.plasma.account.NuDisablePersona import (
     NuDisablePersonaRequest,
     NuDisablePersonaResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuEntitleGame import (
+    NuEntitleGameRequest,
 )
 from bfbc2_masterserver.messages.plasma.account.NuGetPersonas import (
     NuGetPersonasRequest,
@@ -80,6 +85,11 @@ class AccountService(Service):
         self.resolvers[Transaction.NuLoginPersona] = (
             self.__handle_nu_login_persona,
             NuLoginPersonaRequest,
+        )
+
+        self.resolvers[Transaction.NuEntitleGame] = (
+            self.__handle_nu_entitle_game,
+            NuEntitleGameRequest,
         )
 
     def _get_resolver(self, txn):
@@ -231,10 +241,29 @@ class AccountService(Service):
             + "."
         )
 
-        if user_session and not is_service_account:
-            if self.plasma.manager.CLIENTS.get(account_id):
+        if not is_service_account:
+            if user_session:
                 old_client: Client = self.plasma.manager.CLIENTS[account_id]
                 old_client.plasma.on_disconnect()
+
+            # Check whether this user accepted latest TOS
+            if data.tosVersion:  # Update TOS version if provided
+                self.database.accept_tos(account_id, data.tosVersion)
+            else:
+                tos = getLocalizedTOS(self.plasma.clientLocale)
+
+                if account.get("tosVersion", None) != tos["version"]:
+                    return TransactionError(ErrorCode.TOS_OUT_OF_DATE)
+
+            # Check whether this user is entitled to play the game
+            is_entitled = self.database.is_entitled(
+                account_id, self.plasma.clientString
+            )
+
+            if not is_entitled:
+                return TransactionError(ErrorCode.NOT_ENTITLED_TO_GAME)
+
+            # Logoff all other sessions
 
         self.redis.set(f"account:{account_id}", login_key)
         self.redis.set(f"session:{login_key}", account_id)
@@ -314,3 +343,24 @@ class AccountService(Service):
             lkey=login_key, profileId=persona_id, userId=self.plasma.accountID
         )
         return Message(data=response.model_dump(exclude_none=True))
+
+    def __handle_nu_entitle_game(self, data: NuEntitleGameRequest):
+        account = self.database.login(nuid=data.nuid, password=data.password)
+        account_id = str(account["_id"])
+
+        if isinstance(account, ErrorCode):
+            return TransactionError(account)
+
+        success = self.database.entitle_game(account_id=account_id, key=data.key)
+
+        if not success:
+            return TransactionError(ErrorCode.TRANSACTION_DATA_NOT_FOUND)
+
+        return self.__handle_nu_login(
+            NuLoginRequest(
+                nuid=data.nuid,
+                password=data.password,
+                returnEncryptedInfo=False,
+                macAddr="",
+            )
+        )

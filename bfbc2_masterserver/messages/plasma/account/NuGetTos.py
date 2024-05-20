@@ -1,3 +1,5 @@
+from typing import Optional
+
 from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
 
 
@@ -9,7 +11,7 @@ class NuGetTosRequest(PlasmaTransaction):
         countryCode (str): The country code.
     """
 
-    countryCode: str
+    countryCode: Optional[str] = None
 
 
 class NuGetTosResponse(PlasmaTransaction):

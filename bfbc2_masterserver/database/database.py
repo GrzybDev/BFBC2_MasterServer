@@ -41,3 +41,15 @@ class BaseDatabase(ABC):
     @abstractmethod
     def get_persona(self, account_id, name):
         raise NotImplementedError()
+
+    @abstractmethod
+    def accept_tos(self, account_id, version):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def is_entitled(self, account_id, entitlement_id):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def entitle_game(self, account_id, key):
+        raise NotImplementedError()
