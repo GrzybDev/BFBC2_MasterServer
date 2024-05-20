@@ -32,9 +32,9 @@ class TransactionError:
 
     errorCode: int
     localizedMessage: str
-    errorContainer: dict
+    errorContainer: list
 
-    def __init__(self, code: ErrorCode, container: dict = {}):
+    def __init__(self, code: ErrorCode, container: list = []):
         self.errorCode = code.value
         self.localizedMessage = self.__get_localized_message(code)
         self.errorContainer = container
