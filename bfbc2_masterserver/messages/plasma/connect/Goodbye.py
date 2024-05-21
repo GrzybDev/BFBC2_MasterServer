@@ -4,5 +4,5 @@ from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransacti
 
 
 class GoodbyeRequest(PlasmaTransaction):
-    reason: str
+    reason: str | int
     message: Optional[str] = None

@@ -236,9 +236,10 @@ class AccountService(Service):
         )
 
         if not is_service_account:
+            # Logoff all other sessions
             if user_session:
                 old_client: Client = self.plasma.manager.CLIENTS[account_id]
-                old_client.plasma.on_disconnect()
+                old_client.plasma.disconnect(2)
 
             # Check whether this user accepted latest TOS
             if data.tosVersion:  # Update TOS version if provided
@@ -256,8 +257,6 @@ class AccountService(Service):
 
             if not is_entitled:
                 return TransactionError(ErrorCode.NOT_ENTITLED_TO_GAME)
-
-            # Logoff all other sessions
 
         self.redis.set(f"account:{account_id}", login_key)
         self.redis.set(f"session:{login_key}", account_id)
