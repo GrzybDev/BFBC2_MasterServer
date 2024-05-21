@@ -78,10 +78,3 @@ class Manager:
         finally:
             # Clean up
             plasma.on_disconnect()
-
-            if plasma.disconnectReason:
-                logger.info(
-                    msg=f"{host}:{port} -> Disconnected: {plasma.disconnectReason} ({plasma.disconnectMessage})"
-                )
-            else:
-                logger.info(msg=f"{host}:{port} -> Disconnected")

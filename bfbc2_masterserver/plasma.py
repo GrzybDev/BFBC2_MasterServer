@@ -273,3 +273,12 @@ class Plasma:
 
         if self.profileLoginKey:
             self.manager.redis.delete(f"persona:{self.profileLoginKey}")
+
+        if self.disconnectReason:
+            logger.info(
+                msg=f"{self.ws.client.host}:{self.ws.client.port}  -> Disconnected: {self.disconnectReason} ({self.disconnectMessage})"
+            )
+        else:
+            logger.info(
+                msg=f"{self.ws.client.host}:{self.ws.client.port}  -> Disconnected"
+            )
