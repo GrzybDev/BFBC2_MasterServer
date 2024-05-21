@@ -1,11 +1,11 @@
-from pydantic import BaseModel
+from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
 
 
-class NuLoginPersonaRequest(BaseModel):
+class NuLoginPersonaRequest(PlasmaTransaction):
     name: str
 
 
-class NuLoginPersonaResponse(BaseModel):
+class NuLoginPersonaResponse(PlasmaTransaction):
     lkey: str
     profileId: int
     userId: int
