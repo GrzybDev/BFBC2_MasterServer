@@ -127,11 +127,9 @@ class AccountService(Service):
             The response to the transaction.
         """
 
-        response = GetCountryListResponse(
-            countryList=getLocalizedCountryList(self.plasma.clientLocale)
-        )
+        countryList = getLocalizedCountryList(self.plasma.clientLocale)
 
-        return Message(data=response.model_dump(exclude_none=True))
+        return GetCountryListResponse(countryList=countryList)
 
     def __handle_nu_get_tos(self, data: NuGetTosRequest):
         """
@@ -148,17 +146,13 @@ class AccountService(Service):
         # However, this doesn't seem to be the case. Original server sends the same TOS for every country code, only (game) language seems to have any effect.
 
         tos = getLocalizedTOS(self.plasma.clientLocale)
+        return NuGetTosResponse(tos=tos["tos"], version=tos["version"])
 
-        response = NuGetTosResponse(tos=tos["tos"], version=tos["version"])
-        return Message(data=response.model_dump(exclude_none=True))
-
-    def __handle_nu_add_account(self, data: NuAddAccountRequest):
-        try:
-            data = NuAddAccountRequest.model_validate(data)
-        except ValidationError as e:
+    def __handle_nu_add_account(self, data: NuAddAccountRequest | ValidationError):
+        if isinstance(data, ValidationError):
             errContainer = []
 
-            for error in e.errors():
+            for error in data.errors():
                 if error["loc"]:
                     errContainer.append(
                         {
@@ -199,8 +193,7 @@ class AccountService(Service):
         if isinstance(registered, ErrorCode):
             return TransactionError(registered)
 
-        response = NuAddAccountResponse()
-        return Message(data=response.model_dump(exclude_none=True))
+        return NuAddAccountResponse()
 
     def __handle_nu_login(self, data: NuLoginRequest):
         account = self.database.login(nuid=data.nuid, password=data.password)
@@ -284,13 +277,11 @@ class AccountService(Service):
             encryptedLoginInfo=encryptedLoginInfo,
         )
 
-        return Message(data=response.model_dump(exclude_none=True))
+        return response
 
     def __handle_nu_get_personas(self, data: NuGetPersonasRequest):
         personas = self.database.get_personas(account_id=self.plasma.accountID)
-
-        response = NuGetPersonasResponse(personas=personas)
-        return Message(data=response.model_dump(exclude_none=True))
+        return NuGetPersonasResponse(personas=personas)
 
     def __handle_nu_add_persona(self, data: NuAddPersonaRequest):
         success = self.database.add_persona(
@@ -300,8 +291,7 @@ class AccountService(Service):
         if isinstance(success, ErrorCode):
             return TransactionError(success)
 
-        response = NuAddPersonaResponse()
-        return Message(data=response.model_dump(exclude_none=True))
+        return NuAddPersonaResponse()
 
     def __handle_nu_disable_persona(self, data: NuDisablePersonaRequest):
         success = self.database.disable_persona(
@@ -311,8 +301,7 @@ class AccountService(Service):
         if not success:
             return TransactionError(ErrorCode.TRANSACTION_DATA_NOT_FOUND)
 
-        response = NuDisablePersonaResponse()
-        return Message(data=response.model_dump(exclude_none=True))
+        return NuDisablePersonaResponse()
 
     def __handle_nu_login_persona(self, data: NuLoginPersonaRequest):
         persona = self.database.get_persona(
@@ -340,9 +329,11 @@ class AccountService(Service):
         self.redis.set(f"persona:{login_key}", persona_id)
 
         response = NuLoginPersonaResponse(
-            lkey=login_key, profileId=persona_id, userId=self.plasma.accountID
+            lkey=login_key,
+            profileId=persona_id,
+            userId=self.plasma.accountID,
         )
-        return Message(data=response.model_dump(exclude_none=True))
+        return response
 
     def __handle_nu_entitle_game(self, data: NuEntitleGameRequest):
         account = self.database.login(nuid=data.nuid, password=data.password)

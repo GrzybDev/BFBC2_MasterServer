@@ -2,7 +2,7 @@ import logging
 import re
 from datetime import datetime
 from enum import Enum
-from typing import MutableMapping
+from typing import Any, MutableMapping
 from urllib.parse import quote, unquote
 
 # Define constants for the offsets and lengths of the service, kind, and length fields in the message
@@ -33,7 +33,7 @@ class Message:
 
     service: str
     type: int
-    data: dict = {}
+    data: Any = {}
 
     __length = 0
 
@@ -268,7 +268,7 @@ class Message:
     # Method to convert the data to a string
     def __convert_data(self):
         final_data = ""
-        temp_data = self.__flatten(self.data)
+        temp_data = self.__flatten(self.data.model_dump(exclude_none=True))
 
         # For each key-value pair in the flattened data
         for key in temp_data:

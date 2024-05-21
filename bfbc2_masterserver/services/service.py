@@ -1,12 +1,16 @@
+import logging
 from abc import ABC, abstractmethod
 
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 from redis import Redis
 
 from bfbc2_masterserver.database.database import BaseDatabase
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.Transaction import Transaction
-from bfbc2_masterserver.error import TransactionError
+from bfbc2_masterserver.error import TransactionError, TransactionSkip
+from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+
+logger = logging.getLogger(__name__)
 
 
 class Service(ABC):
@@ -26,7 +30,7 @@ class Service(ABC):
         start_transaction(self, txn, data): Starts a scheduled transaction by getting the appropriate generator and calling it.
     """
 
-    __exclude_from_validation = [Transaction.NuAddAccount.value]
+    __ignore_validation_errors: list[str] = [Transaction.NuAddAccount.value]
 
     def __init__(self, plasma) -> None:
         """
@@ -70,7 +74,7 @@ class Service(ABC):
         """
         raise NotImplementedError("Service must implement __get_creator")
 
-    def handle(self, data):
+    def handle(self, message):
         """
         Handles incoming data by getting the appropriate resolver and calling it.
 
@@ -81,17 +85,44 @@ class Service(ABC):
             The result of the resolver function.
         """
 
-        resolver, model = self._get_resolver(data["TXN"])
+        txn = message.data["TXN"]
+        resolver, model = self._get_resolver(txn)
 
-        if data["TXN"] not in self.__exclude_from_validation:
-            try:
-                data = model.model_validate(data)
-            except ValidationError:
+        try:
+            message.data = model.model_validate(message.data)
+
+            # Log the incoming message
+            logger.debug(
+                f"{self.plasma.ws.client.host}:{self.plasma.ws.client.port} -> {message}"
+            )
+        except ValidationError as e:
+            logger.exception(
+                f"{self.plasma.ws.client.host}:{self.plasma.ws.client.port} -> {e}",
+                exc_info=True,
+            )
+
+            if txn not in self.__ignore_validation_errors:
                 return TransactionError(ErrorCode.PARAMETERS_ERROR)
+            else:
+                message.data = e
 
-        return resolver(data)
+        response_data = resolver(message.data)
 
-    def start_transaction(self, txn, data):
+        if isinstance(response_data, TransactionSkip):
+            return response_data
+        elif isinstance(message.data, ValidationError):
+            message.data = PlasmaTransaction(TXN=txn)
+
+        response = self.plasma.finish_message(message, response_data)
+
+        # Log the outgoing message
+        logger.debug(
+            f"{self.plasma.ws.client.host}:{self.plasma.ws.client.port} <- {response}"
+        )
+
+        return response
+
+    def create_message(self, message, data):
         """
         Starts a scheduled transaction by getting the appropriate generator and calling it.
 
@@ -103,5 +134,14 @@ class Service(ABC):
             The result of the generator function.
         """
 
-        creator = self._get_generator(txn)
-        return creator(data)
+        creator = self._get_generator(message.data.TXN)
+        request = creator(data)
+
+        message = self.plasma.finish_message(message, request, noTransactionID=True)
+
+        # Log the outgoing message
+        logger.debug(
+            f"{self.plasma.ws.client.host}:{self.plasma.ws.client.port} <- {message}"
+        )
+
+        return message

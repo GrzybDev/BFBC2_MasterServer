@@ -10,6 +10,9 @@ from bfbc2_masterserver.enumerators.plasma.PlasmaService import PlasmaService
 from bfbc2_masterserver.enumerators.Transaction import Transaction
 from bfbc2_masterserver.error import TransactionError, TransactionSkip
 from bfbc2_masterserver.message import HEADER_LENGTH, Message
+from bfbc2_masterserver.messages.plasma.PlasmaChunk import PlasmaChunk
+from bfbc2_masterserver.messages.plasma.PlasmaError import PlasmaError
+from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
 from bfbc2_masterserver.services.plasma.account import AccountService
 from bfbc2_masterserver.services.plasma.connect import ConnectService
 
@@ -44,8 +47,8 @@ class Plasma:
     clientType: ClientType
     fragmentSize: int
 
-    accountID: str | None = None
-    profileID: str | None = None
+    accountID: int | None = None
+    profileID: int | None = None
     loginKey: str | None = None
     profileLoginKey: str | None = None
 
@@ -79,9 +82,6 @@ class Plasma:
             ValueError: If the service or transaction ID is invalid, or if the Plasma object is not initialized and the message type is not a request.
         """
 
-        # Log the incoming message
-        logger.debug(f"{self.ws.client.host}:{self.ws.client.port} -> {message}")
-
         # Try to get the service from the message
         try:
             service = PlasmaService(message.service)
@@ -111,10 +111,12 @@ class Plasma:
 
         # If the Plasma object is not initialized and the message type is not a request, set the response to an error
         if not self.initialized and message_type != MessageType.PlasmaRequest:
-            response = TransactionError(ErrorCode.NOT_INITIALIZED)
+            response = self.finish_message(
+                message, TransactionError(ErrorCode.NOT_INITIALIZED)
+            )
         # If the message type is a request, handle the request
         elif message_type in [MessageType.PlasmaRequest, MessageType.PlasmaResponse]:
-            response = self.__handle_request(service, message)
+            response = self.services[service].handle(message)
         # If the message type is not valid, raise an error
         else:
             raise ValueError(f"Invalid message type: {message_type}")
@@ -126,72 +128,45 @@ class Plasma:
         elif isinstance(response, TransactionSkip):
             return
 
-        # Send the response
-        if isinstance(response, TransactionError):
-            # Prepare an error message
-            error_message = Message()
-            error_message.service = (
-                service.value if service is not None else message.service
-            )
-            error_message.type = MessageType.PlasmaResponse.value
-            error_message.data["TXN"] = message.data.get("TXN")
-
-            # If the Plasma object is not initialized, set the error message type to InitialError and add the transaction id
-            if not self.initialized:
-                error_message.type = MessageType.InitialError.value
-                error_message.data["TID"] = self.transactionID
-
-            # Add the error details to the message
-            error_message.data["errorCode"] = response.errorCode
-            error_message.data["localizedMessage"] = response.localizedMessage
-            error_message.data["errorContainer"] = response.errorContainer
-
-            # Send the error message
-            await self.__send(error_message)
-        elif isinstance(response, Message):
-            # Prepare the response message
-            response.service = service.value
-            response.type = MessageType.PlasmaResponse.value
-            response.data["TXN"] = message.data.get("TXN")
-
-            # Compile the response into bytes
-            response_bytes = response.compile()
-
-            # If the response is too big to send in one piece
-            if len(response_bytes) > self.fragmentSize:
-                # Message is too big, we need to base64 encode it and split it into fragments
-                message_bytes = response_bytes[HEADER_LENGTH:]  # Get rid of the header
-
-                # Calculate the size of the message before and after encoding
-                decoded_message_size = len(message_bytes)
-                message_bytes = b64encode(message_bytes).decode()
-                encoded_message_size = len(message_bytes)
-
-                # Split the message into fragments
-                fragments = [
-                    message_bytes[i : i + self.fragmentSize]
-                    for i in range(0, len(message_bytes), self.fragmentSize)
-                ]
-
-                # Send each fragment as a separate message
-                for fragment in fragments:
-                    message_fragment = Message()
-                    message_fragment.service = service.value
-                    message_fragment.type = MessageType.PlasmaChunkedResponse.value
-
-                    # Add the fragment and its size to the message
-                    message_fragment.data["data"] = fragment
-                    message_fragment.data["decodedSize"] = decoded_message_size
-                    message_fragment.data["size"] = encoded_message_size
-
-                    # Send the fragment
-                    await self.__send(message_fragment)
-            else:
-                # If the response fits into one message, send it
-                await self.__send(response)
+        # Send the error message
+        await self.__send(response)
 
         # Increment the transaction id for the next transaction
         self.transactionID += 1
+
+    def finish_message(self, message: Message, response_data, noTransactionID=False):
+        # Send the response
+        if isinstance(response_data, TransactionError):
+            # Prepare an error message
+            response = Message()
+            response.service = message.service
+            response.type = MessageType.PlasmaResponse.value
+
+            # If the Plasma object is not initialized, set the error message type to InitialError and add the transaction id
+            if not self.initialized:
+                response.type = MessageType.InitialError.value
+
+            # Add the error details to the message
+            response.data = PlasmaError(
+                TXN=message.data.TXN,
+                errorCode=ErrorCode(response_data.errorCode),
+                localizedMessage=response_data.localizedMessage,
+                errorContainer=response_data.errorContainer,
+                TID=self.transactionID if not self.initialized else None,
+            )
+        else:
+            # Prepare the response message
+            response = Message()
+            response.service = message.service
+            response.type = MessageType.PlasmaResponse.value
+            response.data = response_data
+            response.data.TXN = message.data.TXN
+
+        # If the message type is not an InitialError, add the transaction ID to the message type
+        if response.type != MessageType.InitialError.value and not noTransactionID:
+            response.type = response.type & 0xFF000000 | self.transactionID
+
+        return response
 
     def start_transaction(self, service: PlasmaService, txn: Transaction, data: dict):
         """
@@ -206,53 +181,69 @@ class Plasma:
         # Transactions started by the server are always "SimpleResponse" kind, and have no transaction ID
 
         # Prepare the message
-        message_to_send = self.services[service].start_transaction(txn, data)
+        message = Message()
+        message.service = service.value
+        message.type = MessageType.PlasmaResponse.value
+        message.data = PlasmaTransaction(TXN=txn)
 
-        if isinstance(message_to_send, TransactionError):
-            message = Message()
-            message.service = service.value
-            message.type = MessageType.PlasmaResponse.value
-            message.data["TXN"] = txn
-            message.data["errorCode"] = message_to_send.errorCode
-            message.data["localizedMessage"] = message_to_send.localizedMessage
-            message.data["errorContainer"] = message_to_send.errorContainer
+        request = self.services[service].create_message(message, data)
 
-            send_coroutine = self.__send(message, addTransactionID=False)
-        else:
-            message_to_send.service = service.value
-            message_to_send.type = MessageType.PlasmaResponse.value
-            message_to_send.data["TXN"] = txn
-
-            send_coroutine = self.__send(message_to_send, addTransactionID=False)
+        send_coroutine = self.__send(request)
 
         loop = asyncio.get_event_loop()
         loop.create_task(send_coroutine)
 
-    def __handle_request(self, service: PlasmaService, message: Message):
-        return self.services[service].handle(message.data)
+    async def __send(self, message: Message):
+        # Compile the response into bytes
+        response_bytes = message.compile()
 
-    async def __send(self, message: Message, addTransactionID=True):
-        # If the message type is not an InitialError, add the transaction ID to the message type
-        if message.type != MessageType.InitialError.value and addTransactionID:
-            message.type = message.type & 0xFF000000 | self.transactionID
+        # If the response is too big to send in one piece
+        if len(response_bytes) > self.fragmentSize:
+            # Message is too big, we need to base64 encode it and split it into fragments
+            message_bytes = response_bytes[HEADER_LENGTH:]  # Get rid of the header
 
-        # Compile the message into bytes and send it to the client
-        await self.ws.send_bytes(message.compile())
+            # Calculate the size of the message before and after encoding
+            decoded_message_size = len(message_bytes)
+            message_bytes = b64encode(message_bytes).decode()
+            encoded_message_size = len(message_bytes)
 
-        # Log the sent message
-        logger.debug(f"{self.ws.client.host}:{self.ws.client.port} <- {message}")
+            # Split the message into fragments
+            fragments = [
+                message_bytes[i : i + self.fragmentSize]
+                for i in range(0, len(message_bytes), self.fragmentSize)
+            ]
 
-    def on_disconnect(self, reason: int | None = None):
+            # Send each fragment as a separate message
+            for fragment in fragments:
+                message_fragment = Message()
+                message_fragment.service = message.service
+                message_fragment.type = (
+                    MessageType.PlasmaChunkedResponse.value & 0xFF000000
+                    | self.transactionID
+                )
+
+                # Add the fragment and its size to the message
+                message_fragment.data = PlasmaChunk(
+                    data=fragment,
+                    decodedSize=decoded_message_size,
+                    size=encoded_message_size,
+                )
+
+                # Send the fragment
+                await self.ws.send_bytes(message_fragment.compile())
+        else:
+            # If the response fits into one message, send it
+            await self.ws.send_bytes(response_bytes)
+
+    def disconnect(self, reason: int):
+        self.start_transaction(
+            PlasmaService.ConnectService, Transaction.Goodbye, {"reason": reason}
+        )
+
+    def on_disconnect(self):
         """
         Handles the client disconnecting.
         """
-
-        if reason:
-            self.start_transaction(
-                PlasmaService.ConnectService, Transaction.Goodbye, {"reason": reason}
-            )
-
-            return
 
         self.timerPing.cancel()
         self.timerMemCheck.cancel()

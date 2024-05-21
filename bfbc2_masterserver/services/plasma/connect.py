@@ -157,7 +157,7 @@ class ConnectService(Service):
         self.__make_memcheck()
         self.plasma.initialized = True
 
-        return Message(data=response.model_dump(exclude_none=True))
+        return response
 
     def __create_memcheck(self, data: dict):
         """
@@ -169,7 +169,7 @@ class ConnectService(Service):
             salt="".join(random.choice(string.digits) for _ in range(10)),
         )
 
-        return Message(data=request.model_dump(exclude_none=True))
+        return request
 
     def __handle_memcheck(self, data: MemCheckResult):
         """
@@ -180,7 +180,7 @@ class ConnectService(Service):
 
     def __make_ping(self):
         self.plasma.start_transaction(
-            PlasmaService.ConnectService, Transaction.Ping, {}
+            PlasmaService.ConnectService, Transaction.Ping, PlasmaTransaction()
         )
 
         loop = asyncio.get_event_loop()
@@ -195,7 +195,7 @@ class ConnectService(Service):
 
     def __make_memcheck(self):
         self.plasma.start_transaction(
-            PlasmaService.ConnectService, Transaction.MemCheck, {}
+            PlasmaService.ConnectService, Transaction.MemCheck, PlasmaTransaction()
         )
 
         loop = asyncio.get_event_loop()
@@ -249,16 +249,14 @@ class ConnectService(Service):
 
         ping_sites = []
 
-        response = GetPingSitesResponse(pingSite=ping_sites, minPingSitesToPing=0)
-        return Message(data=response.model_dump(exclude_none=True))
+        return GetPingSitesResponse(pingSite=ping_sites, minPingSitesToPing=0)
 
     def __create_ping(self, data: dict):
         """
         Creates a ping request
         """
 
-        request = PingRequest()
-        return Message(data=request.model_dump(exclude_none=True))
+        return PingRequest()
 
     def __handle_ping(self, data: PingResponse):
         """
@@ -291,4 +289,4 @@ class ConnectService(Service):
         except ValidationError:
             return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
-        return Message(data=data.model_dump(exclude_none=True))
+        return data
