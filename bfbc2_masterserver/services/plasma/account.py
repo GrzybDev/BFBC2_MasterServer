@@ -1,16 +1,13 @@
-import os
 import random
 import string
-from operator import is_
 
-from jose import jwt
+from authlib.jose import jwt
 from pydantic import ValidationError
 
 from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.Transaction import Transaction
 from bfbc2_masterserver.error import TransactionError
-from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.messages.Client import Client
 from bfbc2_masterserver.messages.plasma.account.GetCountryList import (
     GetCountryListRequest,
@@ -218,9 +215,9 @@ class AccountService(Service):
 
         if data.returnEncryptedInfo:
             encoded_jwt = jwt.encode(
+                {"alg": self.database.algorithm},
                 {"nuid": data.nuid},
                 self.database.secret_key,
-                algorithm=self.database.algorithm,
             )
 
             encryptedLoginInfo = encoded_jwt
