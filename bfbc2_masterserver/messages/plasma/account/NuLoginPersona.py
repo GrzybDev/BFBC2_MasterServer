@@ -7,5 +7,5 @@ class NuLoginPersonaRequest(BaseModel):
 
 class NuLoginPersonaResponse(BaseModel):
     lkey: str
-    profileId: str
-    userId: str
+    profileId: int
+    userId: int

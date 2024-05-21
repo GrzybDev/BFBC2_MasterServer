@@ -16,6 +16,6 @@ class NuLoginRequest(PlasmaTransaction):
 class NuLoginResponse(PlasmaTransaction):
     nuid: str
     lkey: str
-    profileId: str
-    userId: str
+    profileId: int
+    userId: int
     encryptedLoginInfo: Optional[str] = None

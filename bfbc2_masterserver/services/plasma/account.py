@@ -197,11 +197,11 @@ class AccountService(Service):
 
     def __handle_nu_login(self, data: NuLoginRequest):
         account = self.database.login(nuid=data.nuid, password=data.password)
-        account_id = str(account["_id"])
 
         if isinstance(account, ErrorCode):
             return TransactionError(account)
 
+        account_id = int(account["_id"])
         client_type = self.plasma.clientType
         is_service_account = account.get("serviceAccount", False)
 
@@ -320,7 +320,7 @@ class AccountService(Service):
             + "."
         )
 
-        persona_id = str(persona["_id"])
+        persona_id = int(persona["_id"])
 
         self.plasma.personaID = persona_id
         self.plasma.personaLoginKey = login_key

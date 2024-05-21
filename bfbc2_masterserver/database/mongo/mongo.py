@@ -1,5 +1,4 @@
 import bcrypt
-from bson import ObjectId
 from pymongo import MongoClient
 from pymongo.database import Database
 
@@ -27,6 +26,7 @@ class MongoDB(BaseDatabase):
 
     def register(self, **kwargs):
         accounts = self.database["accounts"]
+        counters = self.database["counters"]
 
         if accounts.find_one({"nuid": kwargs["nuid"]}):
             return ErrorCode.ALREADY_REGISTERED
@@ -35,8 +35,15 @@ class MongoDB(BaseDatabase):
             kwargs["password"].get_secret_value().encode("utf-8"), bcrypt.gensalt()
         )
 
+        counters.find_one_and_update(
+            {"_id": "account"}, {"$inc": {"seq": 1}}, upsert=True
+        )
+
+        last_account_id = counters.find_one({"_id": "account"})
+
         accounts.insert_one(
             {
+                "_id": last_account_id["seq"] if last_account_id else -1,
                 "nuid": kwargs["nuid"],
                 "password": hashed_password.decode(),
                 "globalOptin": kwargs.get("globalOptin", False),
@@ -74,7 +81,7 @@ class MongoDB(BaseDatabase):
     def get_personas(self, account_id):
         personas = self.database["personas"]
 
-        account_personas = list(personas.find({"account": ObjectId(account_id)}))
+        account_personas = list(personas.find({"account": account_id}))
         personas_list = []
 
         for persona in account_personas:
@@ -84,30 +91,43 @@ class MongoDB(BaseDatabase):
 
     def add_persona(self, account_id, name):
         personas = self.database["personas"]
+        counters = self.database["counters"]
 
         if personas.find_one({"name": name}):
             return ErrorCode.ALREADY_REGISTERED
 
-        personas.insert_one({"account": ObjectId(account_id), "name": name})
+        counters.find_one_and_update(
+            {"_id": "persona"}, {"$inc": {"seq": 1}}, upsert=True
+        )
+
+        last_persona_id = counters.find_one({"_id": "persona"})
+
+        personas.insert_one(
+            {
+                "_id": last_persona_id["seq"] if last_persona_id else -1,
+                "account": account_id,
+                "name": name,
+            }
+        )
         return True
 
     def disable_persona(self, account_id, name):
         personas = self.database["personas"]
-        return personas.delete_one({"account": ObjectId(account_id), "name": name})
+        return personas.delete_one({"account": account_id, "name": name})
 
     def get_persona(self, account_id, name):
         personas = self.database["personas"]
-        return personas.find_one({"account": ObjectId(account_id), "name": name})
+        return personas.find_one({"account": account_id, "name": name})
 
     def accept_tos(self, account_id, version):
         accounts = self.database["accounts"]
         return accounts.update_one(
-            {"_id": ObjectId(account_id)}, {"$set": {"tosVersion": version}}
+            {"_id": account_id}, {"$set": {"tosVersion": version}}
         )
 
     def is_entitled(self, account_id, entitlement_id):
         accounts = self.database["accounts"]
-        account = accounts.find_one({"_id": ObjectId(account_id)})
+        account = accounts.find_one({"_id": account_id})
 
         if not account:
             return False
@@ -149,8 +169,6 @@ class MongoDB(BaseDatabase):
 
         # Mark the key as used
         if entitlement.get("consumable", True):
-            entitlements.update_one(
-                {"key": key}, {"$set": {"used_by": ObjectId(account_id)}}
-            )
+            entitlements.update_one({"key": key}, {"$set": {"used_by": account["_id"]}})
 
         return True
