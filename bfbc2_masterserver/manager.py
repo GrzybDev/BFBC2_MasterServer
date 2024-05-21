@@ -66,7 +66,10 @@ class Manager:
                     MessageType.PlasmaResponse,
                 ]:
                     await plasma.handle_transaction(message, message_type)
-                elif False:
+                elif message_type in [
+                    MessageType.TheaterRequest,
+                    MessageType.TheaterResponse,
+                ]:
                     pass
                 else:
                     raise ValueError("Unknown message type")
