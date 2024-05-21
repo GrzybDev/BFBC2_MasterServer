@@ -1,6 +1,8 @@
 import os
 from abc import ABC, abstractmethod
 
+from pydantic import SecretStr
+
 
 class BaseDatabase(ABC):
 
@@ -16,7 +18,9 @@ class BaseDatabase(ABC):
         ]
 
         for account in service_accounts:
-            self.register(nuid=account[0], password=account[1], serviceAccount=True)
+            self.register(
+                nuid=account[0], password=SecretStr(account[1]), serviceAccount=True
+            )
 
     @abstractmethod
     def register(self, **kwargs):

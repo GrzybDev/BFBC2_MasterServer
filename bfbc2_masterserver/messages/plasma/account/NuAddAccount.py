@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import EmailStr, field_validator, model_validator
+from pydantic import EmailStr, SecretStr, field_validator, model_validator
 
 from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
 from bfbc2_masterserver.tools.country_list import COUNTRY_LIST
@@ -8,7 +8,7 @@ from bfbc2_masterserver.tools.country_list import COUNTRY_LIST
 
 class NuAddAccountRequest(PlasmaTransaction):
     nuid: EmailStr
-    password: str
+    password: SecretStr
     globalOptin: bool
     thirdPartyOptin: bool
     parentalEmail: str

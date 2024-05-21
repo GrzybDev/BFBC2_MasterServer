@@ -32,7 +32,7 @@ class MongoDB(BaseDatabase):
             return ErrorCode.ALREADY_REGISTERED
 
         hashed_password = bcrypt.hashpw(
-            kwargs["password"].encode("utf-8"), bcrypt.gensalt()
+            kwargs["password"].get_secret_value().encode("utf-8"), bcrypt.gensalt()
         )
 
         accounts.insert_one(
@@ -64,7 +64,8 @@ class MongoDB(BaseDatabase):
             return ErrorCode.USER_NOT_FOUND
 
         if not bcrypt.checkpw(
-            kwargs["password"].encode("utf-8"), account["password"].encode("utf-8")
+            kwargs["password"].get_secret_value().encode("utf-8"),
+            account["password"].encode("utf-8"),
         ):
             return ErrorCode.INVALID_PASSWORD
 
