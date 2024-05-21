@@ -55,5 +55,5 @@ class BaseDatabase(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def entitle_game(self, account_id, key):
+    def entitle_game(self, account, key):
         raise NotImplementedError()

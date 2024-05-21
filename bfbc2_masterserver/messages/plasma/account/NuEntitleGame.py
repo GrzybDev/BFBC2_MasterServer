@@ -7,3 +7,10 @@ class NuEntitleGameRequest(PlasmaTransaction):
     key: str
     nuid: str
     password: SecretStr
+
+
+class NuEntitleGameResponse(PlasmaTransaction):
+    nuid: str
+    lkey: str
+    profileId: int
+    userId: int

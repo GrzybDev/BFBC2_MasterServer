@@ -144,7 +144,7 @@ class MongoDB(BaseDatabase):
 
         return entitlement_id in user_entitlements
 
-    def entitle_game(self, account_id, key):
+    def entitle_game(self, account, key):
         accounts = self.database["accounts"]
         entitlements = self.database["entitlements"]
 
@@ -156,15 +156,11 @@ class MongoDB(BaseDatabase):
         if not entitlement.get("isGameEntitlement", False):
             return ErrorCode.CODE_NOT_FOUND
 
-        account = accounts.find_one({"_id": ObjectId(account_id)})
-        if not account:
-            return ErrorCode.USER_NOT_FOUND
-
         # Add the entitlement to the account
         user_entitlements = account.get("entitlements", [])
         user_entitlements.append(entitlement["_id"])
         accounts.update_one(
-            {"_id": ObjectId(account_id)}, {"$set": {"entitlements": user_entitlements}}
+            {"_id": account["_id"]}, {"$set": {"entitlements": user_entitlements}}
         )
 
         # Mark the key as used

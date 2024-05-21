@@ -30,6 +30,7 @@ from bfbc2_masterserver.messages.plasma.account.NuDisablePersona import (
 )
 from bfbc2_masterserver.messages.plasma.account.NuEntitleGame import (
     NuEntitleGameRequest,
+    NuEntitleGameResponse,
 )
 from bfbc2_masterserver.messages.plasma.account.NuGetPersonas import (
     NuGetPersonasRequest,
@@ -337,21 +338,20 @@ class AccountService(Service):
 
     def __handle_nu_entitle_game(self, data: NuEntitleGameRequest):
         account = self.database.login(nuid=data.nuid, password=data.password)
-        account_id = str(account["_id"])
 
         if isinstance(account, ErrorCode):
             return TransactionError(account)
 
-        success = self.database.entitle_game(account_id=account_id, key=data.key)
+        success = self.database.entitle_game(account=account, key=data.key)
 
-        if not success:
-            return TransactionError(ErrorCode.TRANSACTION_DATA_NOT_FOUND)
+        if isinstance(success, ErrorCode):
+            return TransactionError(success)
 
-        return self.__handle_nu_login(
-            NuLoginRequest(
-                nuid=data.nuid,
-                password=data.password,
-                returnEncryptedInfo=False,
-                macAddr="",
-            )
+        response = NuEntitleGameResponse(
+            nuid=data.nuid,
+            lkey="",
+            profileId=account["_id"],
+            userId=account["_id"],
         )
+
+        return response
