@@ -9,6 +9,7 @@ from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.message.MessageType import MessageType
 from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.plasma import Plasma
+from bfbc2_masterserver.theater import Theater
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ class Manager:
         logger.info(f"{host}:{port} -> Connected")
 
         plasma = Plasma(self, websocket)
+        theater = Theater(self, plasma, websocket)
 
         try:
             while True:
@@ -70,7 +72,7 @@ class Manager:
                     MessageType.TheaterRequest,
                     MessageType.TheaterResponse,
                 ]:
-                    pass
+                    await theater.handle_transaction(message)
                 else:
                     raise ValueError("Unknown message type")
         except WebSocketDisconnect:
