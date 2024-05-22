@@ -20,3 +20,6 @@ class Transaction(Enum):
     NuDisablePersona = "NuDisablePersona"
     NuLoginPersona = "NuLoginPersona"
     NuEntitleGame = "NuEntitleGame"
+
+    # Plasma (Assocation)
+    GetAssociations = "GetAssociations"

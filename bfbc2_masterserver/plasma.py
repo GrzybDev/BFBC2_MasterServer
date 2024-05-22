@@ -14,6 +14,7 @@ from bfbc2_masterserver.messages.plasma.PlasmaChunk import PlasmaChunk
 from bfbc2_masterserver.messages.plasma.PlasmaError import PlasmaError
 from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
 from bfbc2_masterserver.services.plasma.account import AccountService
+from bfbc2_masterserver.services.plasma.association import AssociationService
 from bfbc2_masterserver.services.plasma.connect import ConnectService
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,7 @@ class Plasma:
         # Register services
         self.services[PlasmaService.ConnectService] = ConnectService(self)
         self.services[PlasmaService.AccountService] = AccountService(self)
+        self.services[PlasmaService.AssociationService] = AssociationService(self)
 
     async def handle_transaction(self, message: Message, message_type: MessageType):
         """

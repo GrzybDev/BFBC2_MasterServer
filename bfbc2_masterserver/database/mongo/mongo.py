@@ -4,6 +4,7 @@ from pymongo.database import Database
 
 from bfbc2_masterserver.database.database import BaseDatabase
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
+from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
 
 
 class MongoDB(BaseDatabase):
@@ -168,3 +169,25 @@ class MongoDB(BaseDatabase):
             entitlements.update_one({"key": key}, {"$set": {"used_by": account["_id"]}})
 
         return True
+
+    def get_assocation(self, persona_id: int, association_type: AssocationType):
+        persona = self.database["personas"].find_one({"_id": persona_id})
+
+        if not persona:
+            return ErrorCode.USER_NOT_FOUND
+
+        account_associations = persona.get("associations", {})
+
+        match association_type:
+            case AssocationType.PlasmaBlock:
+                associations = account_associations.get("plasmaBlock", [])
+            case AssocationType.PlasmaFriends:
+                associations = account_associations.get("plasmaFriends", [])
+            case AssocationType.PlasmaMute:
+                associations = account_associations.get("plasmaMute", [])
+            case AssocationType.PlasmaRecentPlayers:
+                associations = account_associations.get("plasmaRecentPlayers", [])
+            case _:
+                raise ValueError("Invalid association type")
+
+        return persona["name"], associations

@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 
 from pydantic import SecretStr
 
+from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
+
 
 class BaseDatabase(ABC):
 
@@ -56,4 +58,8 @@ class BaseDatabase(ABC):
 
     @abstractmethod
     def entitle_game(self, account, key):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_assocation(self, persona_id: int, association_type: AssocationType):
         raise NotImplementedError()
