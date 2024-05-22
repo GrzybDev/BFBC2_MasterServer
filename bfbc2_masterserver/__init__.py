@@ -1,13 +1,9 @@
 import logging
 import sys
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket
 
-from bfbc2_masterserver.enumerators.message.MessageFrom import MessageFrom
-from bfbc2_masterserver.enumerators.message.MessageType import MessageType
 from bfbc2_masterserver.manager import Manager
-from bfbc2_masterserver.message import Message
-from bfbc2_masterserver.plasma import Plasma
 
 # Set up logging
 logger = logging.getLogger(__name__)
