@@ -327,8 +327,8 @@ class AccountService(Service):
 
         response = NuLoginPersonaResponse(
             lkey=login_key,
-            profileId=persona_id,
-            userId=self.plasma.accountID,
+            profileId=self.plasma.accountID,
+            userId=persona_id,
         )
         return response
 
