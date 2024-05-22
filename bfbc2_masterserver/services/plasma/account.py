@@ -220,7 +220,7 @@ class AccountService(Service):
                 self.database.secret_key,
             )
 
-            encryptedLoginInfo = encoded_jwt
+            encryptedLoginInfo = encoded_jwt.decode("utf-8")
 
         # Check if this user already have session active
         user_session = self.redis.get(f"account:{account_id}")
