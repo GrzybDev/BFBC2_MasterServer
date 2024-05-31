@@ -4,8 +4,10 @@ from bfbc2_masterserver.enumerators.message.MessageType import MessageType
 from bfbc2_masterserver.enumerators.theater.TheaterCommand import TheaterCommand
 from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.messages.theater.commands.Connect import ConnectRequest
+from bfbc2_masterserver.messages.theater.commands.Echo import EchoRequest
 from bfbc2_masterserver.messages.theater.commands.Login import LoginRequest
 from bfbc2_masterserver.services.theater.connect import handle_connect
+from bfbc2_masterserver.services.theater.echo import handle_echo
 from bfbc2_masterserver.services.theater.login import handle_login
 
 
@@ -24,6 +26,7 @@ class Theater:
         # Register the handlers
         self.handlers[TheaterCommand.Connect] = handle_connect, ConnectRequest
         self.handlers[TheaterCommand.Login] = handle_login, LoginRequest
+        self.handlers[TheaterCommand.Echo] = handle_echo, EchoRequest
 
     async def handle_transaction(self, message: Message):
         try:
