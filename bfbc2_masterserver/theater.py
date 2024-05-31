@@ -1,3 +1,5 @@
+import logging
+
 from pydantic import ValidationError
 
 from bfbc2_masterserver.enumerators.message.MessageType import MessageType
@@ -9,6 +11,8 @@ from bfbc2_masterserver.messages.theater.commands.Login import LoginRequest
 from bfbc2_masterserver.services.theater.connect import handle_connect
 from bfbc2_masterserver.services.theater.echo import handle_echo
 from bfbc2_masterserver.services.theater.login import handle_login
+
+logger = logging.getLogger(__name__)
 
 
 class Theater:
@@ -45,6 +49,9 @@ class Theater:
         try:
             handler, model = self.handlers[command]
             message.data = model.model_validate(message.data)
+            logger.debug(
+                f"{self.plasma.ws.client.host}:{self.plasma.ws.client.port} -> {message}"
+            )
             responses = handler(self, message.data)
         except ValidationError as e:
             raise ValueError(f"Invalid message: {e}")
@@ -66,6 +73,10 @@ class Theater:
                 )
 
                 await self.__send(message)
+
+                logger.debug(
+                    f"{self.plasma.ws.client.host}:{self.plasma.ws.client.port} <- {message}"
+                )
 
             if command != TheaterCommand.Echo:
                 self.transactionID += 1
