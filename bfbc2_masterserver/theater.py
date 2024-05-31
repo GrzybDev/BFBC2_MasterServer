@@ -4,7 +4,9 @@ from bfbc2_masterserver.enumerators.message.MessageType import MessageType
 from bfbc2_masterserver.enumerators.theater.TheaterCommand import TheaterCommand
 from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.messages.theater.commands.Connect import ConnectRequest
+from bfbc2_masterserver.messages.theater.commands.Login import LoginRequest
 from bfbc2_masterserver.services.theater.connect import handle_connect
+from bfbc2_masterserver.services.theater.login import handle_login
 
 
 class Theater:
@@ -21,6 +23,7 @@ class Theater:
 
         # Register the handlers
         self.handlers[TheaterCommand.Connect] = handle_connect, ConnectRequest
+        self.handlers[TheaterCommand.Login] = handle_login, LoginRequest
 
     async def handle_transaction(self, message: Message):
         try:
@@ -47,7 +50,7 @@ class Theater:
         except Exception as e:
             raise ValueError(f"Error handling message: {e}")
 
-        if responses is not None:
+        if responses is not None and self.transactionID:
             for response in responses:
                 if response is None:
                     continue
@@ -58,6 +61,8 @@ class Theater:
                 message.data.TID = self.transactionID
 
                 await self.__send(message)
+
+            self.transactionID += 1
 
     async def __send(self, message: Message):
         # Compile the response into bytes

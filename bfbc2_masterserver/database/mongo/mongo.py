@@ -120,6 +120,10 @@ class MongoDB(BaseDatabase):
         personas = self.database["personas"]
         return personas.find_one({"account": account_id, "name": name})
 
+    def get_persona_by_id(self, persona_id):
+        personas = self.database["personas"]
+        return personas.find_one({"_id": persona_id})
+
     def accept_tos(self, account_id, version):
         accounts = self.database["accounts"]
         return accounts.update_one(
