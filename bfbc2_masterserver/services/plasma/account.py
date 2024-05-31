@@ -222,6 +222,9 @@ class AccountService(Service):
             data.nuid = decoded_jwt.get("nuid")
             data.password = decoded_jwt.get("password")
 
+        if not data.nuid or not data.password:
+            return TransactionError(ErrorCode.PARAMETERS_ERROR)
+
         account = self.database.login(nuid=data.nuid, password=data.password)
 
         if isinstance(account, ErrorCode):
