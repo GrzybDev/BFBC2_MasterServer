@@ -1,4 +1,8 @@
 from bfbc2_masterserver.enumerators.Transaction import Transaction
+from bfbc2_masterserver.messages.plasma.message.GetMessages import (
+    GetMessagesRequest,
+    GetMessagesResponse,
+)
 from bfbc2_masterserver.messages.plasma.message.ModifySettings import (
     ModifySettingsRequest,
     ModifySettingsResponse,
@@ -14,6 +18,11 @@ class ExtensibleMessageService(Service):
         self.resolvers[Transaction.ModifySettings] = (
             self.__handle_modify_settings,
             ModifySettingsRequest,
+        )
+
+        self.resolvers[Transaction.GetMessages] = (
+            self.__handle_get_messages,
+            GetMessagesRequest,
         )
 
     def _get_resolver(self, txn):
@@ -42,3 +51,6 @@ class ExtensibleMessageService(Service):
 
     def __handle_modify_settings(self, data: ModifySettingsRequest):
         return ModifySettingsResponse()
+
+    def __handle_get_messages(self, data: GetMessagesRequest):
+        return GetMessagesResponse(messages=[])
