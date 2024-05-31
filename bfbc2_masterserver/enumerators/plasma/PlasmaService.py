@@ -9,3 +9,4 @@ class PlasmaService(Enum):
     AssociationService = "asso"
     MessageService = "xmsg"
     PresenceService = "pres"
+    RankingService = "rank"

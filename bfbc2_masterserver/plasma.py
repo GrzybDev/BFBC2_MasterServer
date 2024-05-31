@@ -18,6 +18,7 @@ from bfbc2_masterserver.services.plasma.association import AssociationService
 from bfbc2_masterserver.services.plasma.connect import ConnectService
 from bfbc2_masterserver.services.plasma.message import ExtensibleMessageService
 from bfbc2_masterserver.services.plasma.presence import PresenceService
+from bfbc2_masterserver.services.plasma.ranking import RankingService
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ class Plasma:
         self.services[PlasmaService.AssociationService] = AssociationService(self)
         self.services[PlasmaService.MessageService] = ExtensibleMessageService(self)
         self.services[PlasmaService.PresenceService] = PresenceService(self)
+        self.services[PlasmaService.RankingService] = RankingService(self)
 
     async def handle_transaction(self, message: Message, message_type: MessageType):
         """

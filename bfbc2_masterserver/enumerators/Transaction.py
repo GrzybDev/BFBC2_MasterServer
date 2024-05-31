@@ -31,3 +31,6 @@ class Transaction(Enum):
 
     # Plasma (Presence)
     SetPresenceStatus = "SetPresenceStatus"
+
+    # Plasma (Ranking)
+    GetStats = "GetStats"
