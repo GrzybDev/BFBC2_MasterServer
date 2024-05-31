@@ -63,3 +63,7 @@ class BaseDatabase(ABC):
     @abstractmethod
     def get_assocation(self, persona_id: int, association_type: AssocationType):
         raise NotImplementedError()
+
+    @abstractmethod
+    def get_entitlements(self, account_id):
+        raise NotImplementedError()

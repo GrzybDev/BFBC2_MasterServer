@@ -21,6 +21,7 @@ class Transaction(Enum):
     NuLoginPersona = "NuLoginPersona"
     NuEntitleGame = "NuEntitleGame"
     GetTelemetryToken = "GetTelemetryToken"
+    NuGetEntitlements = "NuGetEntitlements"
 
     # Plasma (Assocation)
     GetAssociations = "GetAssociations"

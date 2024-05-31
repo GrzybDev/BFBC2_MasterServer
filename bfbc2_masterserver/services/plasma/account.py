@@ -35,6 +35,10 @@ from bfbc2_masterserver.messages.plasma.account.NuEntitleGame import (
     NuEntitleGameRequest,
     NuEntitleGameResponse,
 )
+from bfbc2_masterserver.messages.plasma.account.NuGetEntitlements import (
+    NuGetEntitlementsRequest,
+    NuGetEntitlementsResponse,
+)
 from bfbc2_masterserver.messages.plasma.account.NuGetPersonas import (
     NuGetPersonasRequest,
     NuGetPersonasResponse,
@@ -101,6 +105,11 @@ class AccountService(Service):
         self.resolvers[Transaction.GetTelemetryToken] = (
             self.__handle_get_telemetry_token,
             GetTelemetryTokenRequest,
+        )
+
+        self.resolvers[Transaction.NuGetEntitlements] = (
+            self.__handle_nu_get_entitlements,
+            NuGetEntitlementsRequest,
         )
 
     def _get_resolver(self, txn):
@@ -415,3 +424,10 @@ class AccountService(Service):
         )
 
         return response
+
+    def __handle_nu_get_entitlements(self, data: NuGetEntitlementsRequest):
+        entitlements = self.database.get_entitlements(account_id=self.plasma.profileId)
+
+        # TODO: Implement this
+
+        return NuGetEntitlementsResponse(entitlements=[])

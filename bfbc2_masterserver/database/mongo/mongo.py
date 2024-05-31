@@ -207,3 +207,21 @@ class MongoDB(BaseDatabase):
                 raise ValueError("Invalid association type")
 
         return persona["name"], associations
+
+    def get_entitlements(self, account_id):
+        accounts = self.database["accounts"]
+        account = accounts.find_one({"_id": account_id})
+
+        if not account:
+            return ErrorCode.USER_NOT_FOUND
+
+        user_entitlements = account.get("entitlements", [])
+
+        global_entitlements = self.database["entitlements"]
+
+        return [
+            entitlement["entitlement"]
+            for entitlement in list(
+                global_entitlements.find({"_id": {"$in": user_entitlements}})
+            )
+        ]
