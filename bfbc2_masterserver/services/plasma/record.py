@@ -1,4 +1,8 @@
 from bfbc2_masterserver.enumerators.Transaction import Transaction
+from bfbc2_masterserver.messages.plasma.record.GetRecord import (
+    GetRecordRequest,
+    GetRecordResponse,
+)
 from bfbc2_masterserver.messages.plasma.record.GetRecordAsMap import (
     GetRecordAsMapRequest,
     GetRecordAsMapResponse,
@@ -14,6 +18,11 @@ class RecordService(Service):
         self.resolvers[Transaction.GetRecordAsMap] = (
             self.__handle_get_record_as_map,
             GetRecordAsMapRequest,
+        )
+
+        self.resolvers[Transaction.GetRecord] = (
+            self.__handle_get_record,
+            GetRecordRequest,
         )
 
     def _get_resolver(self, txn):
@@ -43,3 +52,6 @@ class RecordService(Service):
     def __handle_get_record_as_map(self, data: GetRecordAsMapRequest):
         # TODO: Implement this
         return GetRecordAsMapResponse(state=1, TTL=0)
+
+    def __handle_get_record(self, data: GetRecordAsMapRequest):
+        return GetRecordResponse()
