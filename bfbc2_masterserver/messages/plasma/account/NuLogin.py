@@ -7,8 +7,9 @@ from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransacti
 
 class NuLoginRequest(PlasmaTransaction):
     returnEncryptedInfo: bool
-    nuid: str
-    password: SecretStr
+    encryptedInfo: Optional[str] = None
+    nuid: Optional[str] = None
+    password: Optional[SecretStr] = None
     macAddr: str
     tosVersion: Optional[str] = None
 

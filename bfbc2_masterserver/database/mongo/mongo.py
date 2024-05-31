@@ -1,4 +1,5 @@
 import bcrypt
+from pydantic import SecretStr
 from pymongo import MongoClient
 from pymongo.database import Database
 
@@ -71,8 +72,19 @@ class MongoDB(BaseDatabase):
         if not account:
             return ErrorCode.USER_NOT_FOUND
 
+        password = kwargs["password"]
+
+        if password is None:
+            return ErrorCode.INVALID_PASSWORD
+        else:
+            password = (
+                password.get_secret_value()
+                if isinstance(password, SecretStr)
+                else password
+            )
+
         if not bcrypt.checkpw(
-            kwargs["password"].get_secret_value().encode("utf-8"),
+            password.encode("utf-8"),
             account["password"].encode("utf-8"),
         ):
             return ErrorCode.INVALID_PASSWORD

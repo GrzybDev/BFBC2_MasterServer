@@ -1,8 +1,9 @@
+import logging
 import random
 import string
 
 from authlib.jose import jwt
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
@@ -48,6 +49,8 @@ from bfbc2_masterserver.messages.plasma.account.NuLoginPersona import (
 from bfbc2_masterserver.services.service import Service
 from bfbc2_masterserver.tools.country_list import getLocalizedCountryList
 from bfbc2_masterserver.tools.terms_of_service import getLocalizedTOS
+
+logger = logging.getLogger(__name__)
 
 
 class AccountService(Service):
@@ -194,6 +197,21 @@ class AccountService(Service):
         return NuAddAccountResponse()
 
     def __handle_nu_login(self, data: NuLoginRequest):
+        if (not data.nuid or not data.password) and data.encryptedInfo:
+            try:
+                decoded_jwt = jwt.decode(
+                    data.encryptedInfo.encode("utf-8"),
+                    self.database.secret_key,
+                )
+
+                decoded_jwt.validate()
+            except Exception as e:
+                logger.error(f"Error decoding/validating JWT: {e}")
+                return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+            data.nuid = decoded_jwt.get("nuid")
+            data.password = decoded_jwt.get("password")
+
         account = self.database.login(nuid=data.nuid, password=data.password)
 
         if isinstance(account, ErrorCode):
@@ -216,8 +234,16 @@ class AccountService(Service):
         if data.returnEncryptedInfo:
             encoded_jwt = jwt.encode(
                 {"alg": self.database.algorithm},
-                {"nuid": data.nuid},
+                {
+                    "nuid": data.nuid,
+                    "password": (
+                        data.password.get_secret_value()
+                        if isinstance(data.password, SecretStr)
+                        else data.password
+                    ),
+                },
                 self.database.secret_key,
+                check=False,
             )
 
             encryptedLoginInfo = encoded_jwt.decode("utf-8")
