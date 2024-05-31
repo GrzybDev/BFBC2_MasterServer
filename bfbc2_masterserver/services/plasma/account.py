@@ -258,8 +258,8 @@ class AccountService(Service):
         self.redis.set(f"account:{account_id}", login_key)
         self.redis.set(f"session:{login_key}", account_id)
 
-        self.plasma.accountID = account_id
-        self.plasma.loginKey = login_key
+        self.plasma.profileId = account_id
+        self.plasma.profileLoginKey = login_key
 
         if client_type == ClientType.Client:
             self.plasma.manager.CLIENTS[account_id] = Client(plasma=self.plasma)
@@ -277,12 +277,12 @@ class AccountService(Service):
         return response
 
     def __handle_nu_get_personas(self, data: NuGetPersonasRequest):
-        personas = self.database.get_personas(account_id=self.plasma.accountID)
+        personas = self.database.get_personas(account_id=self.plasma.profileId)
         return NuGetPersonasResponse(personas=personas)
 
     def __handle_nu_add_persona(self, data: NuAddPersonaRequest):
         success = self.database.add_persona(
-            account_id=self.plasma.accountID, name=data.name
+            account_id=self.plasma.profileId, name=data.name
         )
 
         if isinstance(success, ErrorCode):
@@ -292,7 +292,7 @@ class AccountService(Service):
 
     def __handle_nu_disable_persona(self, data: NuDisablePersonaRequest):
         success = self.database.disable_persona(
-            account_id=self.plasma.accountID, name=data.name
+            account_id=self.plasma.profileId, name=data.name
         )
 
         if not success:
@@ -302,7 +302,7 @@ class AccountService(Service):
 
     def __handle_nu_login_persona(self, data: NuLoginPersonaRequest):
         persona = self.database.get_persona(
-            account_id=self.plasma.accountID, name=data.name
+            account_id=self.plasma.profileId, name=data.name
         )
 
         if not persona:
@@ -319,15 +319,15 @@ class AccountService(Service):
 
         persona_id = int(persona["_id"])
 
-        self.plasma.personaID = persona_id
-        self.plasma.personaLoginKey = login_key
+        self.plasma.userId = persona_id
+        self.plasma.userLoginKey = login_key
 
         self.redis.set(f"profile:{persona_id}", login_key)
         self.redis.set(f"persona:{login_key}", persona_id)
 
         response = NuLoginPersonaResponse(
             lkey=login_key,
-            profileId=self.plasma.accountID,
+            profileId=self.plasma.profileId,
             userId=persona_id,
         )
         return response

@@ -48,10 +48,10 @@ class Plasma:
     clientType: ClientType
     fragmentSize: int
 
-    accountID: int | None = None
-    profileID: int | None = None
-    loginKey: str | None = None
+    profileId: int | None = None
     profileLoginKey: str | None = None
+    userId: int | None = None
+    userLoginKey: str | None = None
 
     transactionID: int
 
@@ -250,22 +250,22 @@ class Plasma:
         self.timerPing.cancel()
         self.timerMemCheck.cancel()
 
-        if self.accountID:
-            self.manager.redis.delete(f"account:{self.accountID}")
+        if self.profileId:
+            self.manager.redis.delete(f"account:{self.profileId}")
 
             if self.clientType == ClientType.Client:
-                self.manager.CLIENTS.pop(self.accountID, None)
+                self.manager.CLIENTS.pop(self.profileId, None)
             else:
-                self.manager.SERVERS.pop(self.accountID, None)
-
-        if self.loginKey:
-            self.manager.redis.delete(f"session:{self.loginKey}")
-
-        if self.profileID:
-            self.manager.redis.delete(f"profile:{self.profileID}")
+                self.manager.SERVERS.pop(self.profileId, None)
 
         if self.profileLoginKey:
-            self.manager.redis.delete(f"persona:{self.profileLoginKey}")
+            self.manager.redis.delete(f"session:{self.profileLoginKey}")
+
+        if self.userId:
+            self.manager.redis.delete(f"profile:{self.userId}")
+
+        if self.userLoginKey:
+            self.manager.redis.delete(f"persona:{self.userLoginKey}")
 
         if self.disconnectReason:
             logger.info(
