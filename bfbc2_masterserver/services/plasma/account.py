@@ -15,6 +15,10 @@ from bfbc2_masterserver.messages.plasma.account.GetCountryList import (
     GetCountryListRequest,
     GetCountryListResponse,
 )
+from bfbc2_masterserver.messages.plasma.account.GetLockerURL import (
+    GetLockerURLRequest,
+    GetLockerURLResponse,
+)
 from bfbc2_masterserver.messages.plasma.account.GetTelemetryToken import (
     GetTelemetryTokenRequest,
     GetTelemetryTokenResponse,
@@ -110,6 +114,11 @@ class AccountService(Service):
         self.resolvers[Transaction.NuGetEntitlements] = (
             self.__handle_nu_get_entitlements,
             NuGetEntitlementsRequest,
+        )
+
+        self.resolvers[Transaction.GetLockerURL] = (
+            self.__handle_get_locker_url,
+            GetLockerURLRequest,
         )
 
     def _get_resolver(self, txn):
@@ -431,3 +440,8 @@ class AccountService(Service):
         # TODO: Implement this
 
         return NuGetEntitlementsResponse(entitlements=[])
+
+    def __handle_get_locker_url(self, data: GetLockerURLRequest):
+        return GetLockerURLResponse(
+            url="http://bfbc2.gos.ea.com/easo/fileupload/locker2.jsp"
+        )
