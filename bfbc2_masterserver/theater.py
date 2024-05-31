@@ -61,11 +61,14 @@ class Theater:
                 message.type = MessageType.TheaterResponse.value
 
                 message.data = response
-                message.data.TID = self.transactionID
+                message.data.TID = (
+                    self.transactionID if command != TheaterCommand.Echo else tid
+                )
 
                 await self.__send(message)
 
-            self.transactionID += 1
+            if command != TheaterCommand.Echo:
+                self.transactionID += 1
 
     async def __send(self, message: Message):
         # Compile the response into bytes
