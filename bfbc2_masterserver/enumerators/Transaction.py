@@ -34,3 +34,6 @@ class Transaction(Enum):
 
     # Plasma (Ranking)
     GetStats = "GetStats"
+
+    # Plasma (GetRecordAsMap)
+    GetRecordAsMap = "GetRecordAsMap"

@@ -10,3 +10,4 @@ class PlasmaService(Enum):
     MessageService = "xmsg"
     PresenceService = "pres"
     RankingService = "rank"
+    RecordService = "recp"
