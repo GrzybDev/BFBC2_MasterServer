@@ -23,3 +23,6 @@ class Transaction(Enum):
 
     # Plasma (Assocation)
     GetAssociations = "GetAssociations"
+
+    # Plasma (Extensible Message)
+    ModifySettings = "ModifySettings"

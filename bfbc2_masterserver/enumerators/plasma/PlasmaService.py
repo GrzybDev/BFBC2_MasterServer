@@ -7,3 +7,4 @@ class PlasmaService(Enum):
     ConnectService = "fsys"
     AccountService = "acct"
     AssociationService = "asso"
+    MessageService = "xmsg"
