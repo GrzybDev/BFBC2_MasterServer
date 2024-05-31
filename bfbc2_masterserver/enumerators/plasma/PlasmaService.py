@@ -8,3 +8,4 @@ class PlasmaService(Enum):
     AccountService = "acct"
     AssociationService = "asso"
     MessageService = "xmsg"
+    PresenceService = "pres"

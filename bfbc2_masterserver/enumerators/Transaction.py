@@ -27,3 +27,6 @@ class Transaction(Enum):
 
     # Plasma (Extensible Message)
     ModifySettings = "ModifySettings"
+
+    # Plasma (Presence)
+    SetPresenceStatus = "SetPresenceStatus"

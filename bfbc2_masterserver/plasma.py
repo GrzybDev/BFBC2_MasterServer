@@ -17,6 +17,7 @@ from bfbc2_masterserver.services.plasma.account import AccountService
 from bfbc2_masterserver.services.plasma.association import AssociationService
 from bfbc2_masterserver.services.plasma.connect import ConnectService
 from bfbc2_masterserver.services.plasma.message import ExtensibleMessageService
+from bfbc2_masterserver.services.plasma.presence import PresenceService
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ class Plasma:
         self.services[PlasmaService.AccountService] = AccountService(self)
         self.services[PlasmaService.AssociationService] = AssociationService(self)
         self.services[PlasmaService.MessageService] = ExtensibleMessageService(self)
+        self.services[PlasmaService.PresenceService] = PresenceService(self)
 
     async def handle_transaction(self, message: Message, message_type: MessageType):
         """
@@ -265,6 +267,7 @@ class Plasma:
 
         if self.userId:
             self.manager.redis.delete(f"profile:{self.userId}")
+            self.manager.redis.delete(f"presence:{self.userId}")
 
         if self.userLoginKey:
             self.manager.redis.delete(f"persona:{self.userLoginKey}")
