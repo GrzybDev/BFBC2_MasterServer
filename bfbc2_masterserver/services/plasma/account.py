@@ -1,6 +1,7 @@
 import logging
 import random
 import string
+from base64 import b64encode
 
 from authlib.jose import jwt
 from pydantic import SecretStr, ValidationError
@@ -13,6 +14,10 @@ from bfbc2_masterserver.messages.Client import Client
 from bfbc2_masterserver.messages.plasma.account.GetCountryList import (
     GetCountryListRequest,
     GetCountryListResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.GetTelemetryToken import (
+    GetTelemetryTokenRequest,
+    GetTelemetryTokenResponse,
 )
 from bfbc2_masterserver.messages.plasma.account.NuAddAccount import (
     NuAddAccountRequest,
@@ -47,7 +52,7 @@ from bfbc2_masterserver.messages.plasma.account.NuLoginPersona import (
     NuLoginPersonaResponse,
 )
 from bfbc2_masterserver.services.service import Service
-from bfbc2_masterserver.tools.country_list import getLocalizedCountryList
+from bfbc2_masterserver.tools.country_list import COUNTRY_LIST, getLocalizedCountryList
 from bfbc2_masterserver.tools.terms_of_service import getLocalizedTOS
 
 logger = logging.getLogger(__name__)
@@ -91,6 +96,11 @@ class AccountService(Service):
         self.resolvers[Transaction.NuEntitleGame] = (
             self.__handle_nu_entitle_game,
             NuEntitleGameRequest,
+        )
+
+        self.resolvers[Transaction.GetTelemetryToken] = (
+            self.__handle_get_telemetry_token,
+            GetTelemetryTokenRequest,
         )
 
     def _get_resolver(self, txn):
@@ -374,6 +384,31 @@ class AccountService(Service):
             lkey="",
             profileId=account["_id"],
             userId=account["_id"],
+        )
+
+        return response
+
+    def __handle_get_telemetry_token(self, data: GetTelemetryTokenRequest):
+        token = "0.0.0.0,9946,"
+        localeStr = self.plasma.clientLocale.value.replace("_", "")
+
+        if len(localeStr) == 2:
+            localeStr = localeStr + localeStr.upper()
+
+        token += localeStr
+
+        # Token also have some encoded data (for telemetry)
+        # We don't need it, so we just fill it with zeros
+
+        # Token length is 104 bytes (at least that's what I've seen in original server)
+        token += "\0" * 104
+        token = b64encode(token.encode("utf-8")).decode("utf-8")
+
+        response = GetTelemetryTokenResponse(
+            telemetryToken=token,
+            enabled=",".join(COUNTRY_LIST.keys()),
+            filters="",
+            disabled="",
         )
 
         return response
