@@ -443,5 +443,5 @@ class AccountService(Service):
 
     def __handle_get_locker_url(self, data: GetLockerURLRequest):
         return GetLockerURLResponse(
-            url="http://bfbc2.gos.ea.com/easo/fileupload/locker2.jsp"
+            url="http://bfbc2.gos.ea.com/fileupload/locker2.jsp"
         )
