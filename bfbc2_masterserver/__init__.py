@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, HTTPException, Response, WebSocket
 from fastapi.staticfiles import StaticFiles
 
 from bfbc2_masterserver.manager import Manager
@@ -19,6 +19,30 @@ app = FastAPI(title="Battlefield: Bad Company 2 Master Server Emulator")
 manager = Manager()
 
 app.mount("/easo", StaticFiles(directory="static"), name="EASO")
+
+
+@app.get("/fileupload/locker2.jsp")
+async def locker(site: str, cmd: str, lkey: str, pers: str, game: str):
+    # More-or-less original server behaviour
+    response = '<?xml version="1.0" encoding="UTF-8"?>'
+
+    if site != "easo" or cmd != "dir":
+        raise HTTPException(status_code=500, detail="Invalid command")
+
+    ownr = manager.redis.get(f"persona:{lkey}")
+
+    if not ownr:
+        response += '<LOCKER error="2"/>'
+        return Response(response, media_type="text/xml")
+
+    if game != "/eagames/BFBC2":
+        raise HTTPException(
+            status_code=401, detail="This request requires HTTP authentication."
+        )
+
+    response += f'<LOCKER error="0" game="{game}" maxBytes="2867200" maxFiles="10" numBytes="0" numFiles="0" ownr="{int(ownr.decode("utf-8"))}" pers="{pers}"/>'  # type: ignore
+    return Response(response, media_type="text/xml")
+
 
 # Define WebSocket endpoint
 @app.websocket("/ws")
