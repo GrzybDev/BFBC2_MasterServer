@@ -2791,7 +2791,7 @@ def getLocalizedCountryList(locale: ClientLocale):
     # Return the list of countries in specified format:
     # {
     #    "ISOCode": "DBG",
-    #    "description": "Debugistan",
+    #    "description": "Debugistan"
     # }
     #
     # Country can have these optional values:
