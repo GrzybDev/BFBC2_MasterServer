@@ -10,7 +10,7 @@ def getLocalizedTOS(locale: ClientLocale):
     dirname = os.path.dirname(__file__)
 
     # Check if locale have a TOS file
-    # Example TOS is located in ./data/TOS.default.20426.20426_18.txt
+    # Example TOS is located in ./data/TOS.default.20426_17.20426_17.txt
     # The file name is in format TOS.<locale>.<version>.txt
 
     # Check if the file exists, any version
