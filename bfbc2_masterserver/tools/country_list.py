@@ -2791,8 +2791,13 @@ def getLocalizedCountryList(locale: ClientLocale):
     # Return the list of countries in specified format:
     # {
     #    "ISOCode": "DBG",
-    #    "Name": "Debugistan"
+    #    "description": "Debugistan",
     # }
+    #
+    # Country can have these optional values:
+    # allowEmailsDefaultValue [boolean]
+    # parentalControlAgeLimit [int]
+    # registrationAgeLimit [int]
     #
     # If the country has a localized name, it will be used. Otherwise, the English name will be used.
 
