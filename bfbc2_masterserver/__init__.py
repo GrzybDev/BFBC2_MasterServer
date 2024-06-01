@@ -2,6 +2,7 @@ import logging
 import sys
 
 from fastapi import FastAPI, WebSocket
+from fastapi.staticfiles import StaticFiles
 
 from bfbc2_masterserver.manager import Manager
 
@@ -17,6 +18,7 @@ logger.addHandler(stream_handler)
 app = FastAPI(title="Battlefield: Bad Company 2 Master Server Emulator")
 manager = Manager()
 
+app.mount("/easo", StaticFiles(directory="static"), name="EASO")
 
 # Define WebSocket endpoint
 @app.websocket("/ws")

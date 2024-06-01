@@ -12,6 +12,7 @@ services:
       - .env
     volumes:
       - ./bfbc2_masterserver:/app/bfbc2_masterserver
+      - ./static:/app/static
     
   mongo:
     image: mongo
