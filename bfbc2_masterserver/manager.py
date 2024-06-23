@@ -26,10 +26,15 @@ class Manager:
         mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_STRING")
         sql_connection_string = os.environ.get("SQL_CONNECTION_STRING")
 
+        self.redis = Redis(
+            host=os.environ.get("REDIS_HOST", "localhost"),
+            port=int(os.environ.get("REDIS_PORT", "6379")),
+        )
+
         if mongodb_connection_string is not None:
             from bfbc2_masterserver.database.mongo.mongo import MongoDB
 
-            self.database = MongoDB(mongodb_connection_string)
+            self.database = MongoDB(mongodb_connection_string, self.redis)
         elif sql_connection_string is not None:
             # TODO: Implement SQL database support
             raise NotImplementedError("SQL database support is not implemented yet.")
@@ -37,11 +42,6 @@ class Manager:
             raise ValueError(
                 "No database is configured! Check your environment variables."
             )
-
-        self.redis = Redis(
-            host=os.environ.get("REDIS_HOST", "localhost"),
-            port=int(os.environ.get("REDIS_PORT", "6379")),
-        )
 
     async def handle_connection(self, websocket):
         await websocket.accept()

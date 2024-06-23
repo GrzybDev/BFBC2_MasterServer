@@ -248,9 +248,8 @@ class AccountService(Service):
         if isinstance(account, ErrorCode):
             return TransactionError(account)
 
-        account_id = int(account["_id"])
         client_type = self.plasma.clientType
-        is_service_account = account.get("serviceAccount", False)
+        is_service_account = account.serviceAccount
 
         # Allow login to service account only for servers
         if client_type == ClientType.Client:
@@ -280,7 +279,7 @@ class AccountService(Service):
             encryptedLoginInfo = encoded_jwt.decode("utf-8")
 
         # Check if this user already have session active
-        user_session = self.redis.get(f"account:{account_id}")
+        user_session = self.redis.get(f"account:{account.id}")
         login_key = (
             "".join(
                 random.choice(string.ascii_letters + string.digits + "-_")
@@ -292,42 +291,42 @@ class AccountService(Service):
         if not is_service_account:
             # Logoff all other sessions
             if user_session:
-                old_client: Client = self.plasma.manager.CLIENTS[account_id]
+                old_client: Client = self.plasma.manager.CLIENTS[account.id]
                 old_client.plasma.disconnect(2)
 
             # Check whether this user accepted latest TOS
             if data.tosVersion:  # Update TOS version if provided
-                self.database.accept_tos(account_id, data.tosVersion)
+                self.database.accept_tos(account.id, data.tosVersion)
             else:
                 tos = getLocalizedTOS(self.plasma.clientLocale)
 
-                if account.get("tosVersion", None) != tos["version"]:
+                if account.tosVersion != tos["version"]:
                     return TransactionError(ErrorCode.TOS_OUT_OF_DATE)
 
             # Check whether this user is entitled to play the game
             is_entitled = self.database.is_entitled(
-                account_id, self.plasma.clientString
+                account.id, self.plasma.clientString
             )
 
             if not is_entitled:
                 return TransactionError(ErrorCode.NOT_ENTITLED_TO_GAME)
 
-        self.redis.set(f"account:{account_id}", login_key)
-        self.redis.set(f"session:{login_key}", account_id)
+        self.redis.set(f"account:{account.id}", login_key)
+        self.redis.set(f"session:{login_key}", account.id)
 
-        self.plasma.profileId = account_id
+        self.plasma.profileId = account.id
         self.plasma.profileLoginKey = login_key
 
         if client_type == ClientType.Client:
-            self.plasma.manager.CLIENTS[account_id] = Client(plasma=self.plasma)
+            self.plasma.manager.CLIENTS[account.id] = Client(plasma=self.plasma)
         else:
-            self.plasma.manager.SERVERS[account_id] = Client(plasma=self.plasma)
+            self.plasma.manager.SERVERS[account.id] = Client(plasma=self.plasma)
 
         response = NuLoginResponse(
             nuid=data.nuid,
             lkey=login_key,
-            profileId=account_id,
-            userId=account_id,
+            profileId=account.id,
+            userId=account.id,
             encryptedLoginInfo=encryptedLoginInfo,
         )
 
@@ -352,8 +351,8 @@ class AccountService(Service):
             account_id=self.plasma.profileId, name=data.name
         )
 
-        if not success:
-            return TransactionError(ErrorCode.TRANSACTION_DATA_NOT_FOUND)
+        if isinstance(success, ErrorCode):
+            return TransactionError(success)
 
         return NuDisablePersonaResponse()
 
@@ -362,7 +361,7 @@ class AccountService(Service):
             account_id=self.plasma.profileId, name=data.name
         )
 
-        if not persona:
+        if isinstance(persona, ErrorCode):
             return TransactionError(ErrorCode.USER_NOT_FOUND)
 
         # Generate new login key for persona
@@ -374,18 +373,16 @@ class AccountService(Service):
             + "."
         )
 
-        persona_id = int(persona["_id"])
-
-        self.plasma.userId = persona_id
+        self.plasma.userId = persona.id
         self.plasma.userLoginKey = login_key
 
-        self.redis.set(f"profile:{persona_id}", login_key)
-        self.redis.set(f"persona:{login_key}", persona_id)
+        self.redis.set(f"profile:{persona.id}", login_key)
+        self.redis.set(f"persona:{login_key}", persona.id)
 
         response = NuLoginPersonaResponse(
             lkey=login_key,
             profileId=self.plasma.profileId,
-            userId=persona_id,
+            userId=persona.id,
         )
         return response
 
@@ -395,7 +392,7 @@ class AccountService(Service):
         if isinstance(account, ErrorCode):
             return TransactionError(account)
 
-        success = self.database.entitle_game(account=account, key=data.key)
+        success = self.database.entitle_game(account_id=account.id, key=data.key)
 
         if isinstance(success, ErrorCode):
             return TransactionError(success)
@@ -403,8 +400,8 @@ class AccountService(Service):
         response = NuEntitleGameResponse(
             nuid=data.nuid,
             lkey="",
-            profileId=account["_id"],
-            userId=account["_id"],
+            profileId=account.id,
+            userId=account.id,
         )
 
         return response
@@ -435,11 +432,22 @@ class AccountService(Service):
         return response
 
     def __handle_nu_get_entitlements(self, data: NuGetEntitlementsRequest):
-        entitlements = self.database.get_entitlements(account_id=self.plasma.profileId)
+        groupName = data.groupName
+        entitlementTag = data.entitlementTag
 
-        # TODO: Implement this
+        uid = (
+            data.masterUserId
+            if self.plasma.clientType == ClientType.Server
+            else self.plasma.profileId
+        )
+        entitlements = self.database.get_entitlements(
+            account_id=uid, groupName=groupName, entitlementTag=entitlementTag
+        )
 
-        return NuGetEntitlementsResponse(entitlements=[])
+        if isinstance(entitlements, ErrorCode):
+            return TransactionError(entitlements)
+
+        return NuGetEntitlementsResponse(entitlements=entitlements)
 
     def __handle_get_locker_url(self, data: GetLockerURLRequest):
         return GetLockerURLResponse(

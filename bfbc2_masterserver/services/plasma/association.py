@@ -3,8 +3,8 @@ from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
 from bfbc2_masterserver.enumerators.Transaction import Transaction
 from bfbc2_masterserver.error import TransactionError
 from bfbc2_masterserver.messages.plasma.assocation.GetAssociations import (
-    GetAssocationsResponse,
     GetAssociationsRequest,
+    GetAssociationsResponse,
 )
 from bfbc2_masterserver.messages.plasma.Owner import Owner
 from bfbc2_masterserver.services.service import Service
@@ -52,7 +52,7 @@ class AssociationService(Service):
 
         persona_name, assocations = assocations
 
-        response = GetAssocationsResponse(
+        response = GetAssociationsResponse(
             domainPartition=data.domainPartition,
             maxListSize=20 if data.type != AssocationType.PlasmaRecentPlayers else 100,
             members=assocations,

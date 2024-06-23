@@ -8,6 +8,7 @@ class NuGetEntitlementsRequest(PlasmaTransaction):
     status: str
     groupName: str
     entitlementTag: Optional[str] = None
+    masterUserId: Optional[int] = None
 
 
 class NuGetEntitlementsResponse(PlasmaTransaction):

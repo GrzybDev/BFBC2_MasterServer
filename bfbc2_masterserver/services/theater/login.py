@@ -18,6 +18,6 @@ def handle_login(ctx, data: LoginRequest):
     database = ctx.manager.database
     persona = database.get_persona_by_id(uid)
 
-    response = LoginResponse(NAME=persona["name"])
+    response = LoginResponse(NAME=persona.name)
 
     yield response
