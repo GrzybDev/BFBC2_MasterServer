@@ -29,7 +29,7 @@ def getLocalizedTOS(locale: ClientLocale):
     files.sort()
     filename = files[-1]
 
-    with open(filename, "r") as f:
+    with open(filename, "r", encoding="utf-8") as f:
         return {
             "tos": f.read(),
             "version": os.path.basename(filename).split(".", 2)[2].replace(".txt", ""),
