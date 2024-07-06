@@ -1,3 +1,4 @@
+from bfbc2_masterserver.messages.Message import Message
 from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
 
 
@@ -8,4 +9,4 @@ class GetMessagesRequest(PlasmaTransaction):
 
 
 class GetMessagesResponse(PlasmaTransaction):
-    messages: list[None]  # TODO
+    messages: list[Message]
