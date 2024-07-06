@@ -1,7 +1,10 @@
+from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.Transaction import Transaction
+from bfbc2_masterserver.error import TransactionError
 from bfbc2_masterserver.messages.plasma.record.GetRecord import (
     GetRecordRequest,
     GetRecordResponse,
+    Record,
 )
 from bfbc2_masterserver.messages.plasma.record.GetRecordAsMap import (
     GetRecordAsMapRequest,
@@ -50,8 +53,21 @@ class RecordService(Service):
         return self.generators[Transaction(txn)]
 
     def __handle_get_record_as_map(self, data: GetRecordAsMapRequest):
-        # TODO: Implement this
-        return GetRecordAsMapResponse(state=1, TTL=0)
+        records = self.database.get_records(self.plasma.userId, data.recordName)
 
-    def __handle_get_record(self, data: GetRecordAsMapRequest):
-        return GetRecordResponse()
+        if not records:
+            return TransactionError(ErrorCode.RECORD_NOT_FOUND)
+
+        values = {record.key: record.value for record in records}
+        return GetRecordAsMapResponse(
+            state=1, TTL=0, lastModified=records[0].updated, values=values
+        )
+
+    def __handle_get_record(self, data: GetRecordRequest):
+        records = self.database.get_records(self.plasma.userId, data.recordName)
+
+        if not records:
+            return TransactionError(ErrorCode.RECORD_NOT_FOUND)
+
+        values = [Record(key=record.key, value=record.value) for record in records]
+        return GetRecordResponse(values=values)
