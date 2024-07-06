@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -9,7 +10,7 @@ class Entitlement(BaseModel):
     userId: int
     entitlementTag: str
     version: int
-    terminationDate: datetime
+    terminationDate: Optional[datetime]
     productId: str
     entitlementId: str
     status: str
