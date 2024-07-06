@@ -41,6 +41,5 @@ class RankingService(Service):
         return self.generators[Transaction(txn)]
 
     def __handle_get_stats(self, data: GetStatsRequest):
-        # TODO: Implement this
-
-        return GetStatsResponse()
+        stats = self.database.get_stats(self.plasma.userId, data.keys)
+        return GetStatsResponse(stats=stats)

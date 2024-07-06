@@ -1,4 +1,5 @@
 from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.messages.Stats import Stat
 
 
 class GetStatsRequest(PlasmaTransaction):
@@ -8,4 +9,4 @@ class GetStatsRequest(PlasmaTransaction):
 
 
 class GetStatsResponse(PlasmaTransaction):
-    pass
+    stats: list[Stat]
