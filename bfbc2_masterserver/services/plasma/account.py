@@ -39,6 +39,10 @@ from bfbc2_masterserver.messages.plasma.account.NuEntitleGame import (
     NuEntitleGameRequest,
     NuEntitleGameResponse,
 )
+from bfbc2_masterserver.messages.plasma.account.NuEntitleUser import (
+    NuEntitleUserRequest,
+    NuEntitleUserResponse,
+)
 from bfbc2_masterserver.messages.plasma.account.NuGetEntitlements import (
     NuGetEntitlementsRequest,
     NuGetEntitlementsResponse,
@@ -119,6 +123,11 @@ class AccountService(Service):
         self.resolvers[Transaction.GetLockerURL] = (
             self.__handle_get_locker_url,
             GetLockerURLRequest,
+        )
+
+        self.resolvers[Transaction.NuEntitleUser] = (
+            self.__handle_nu_entitle_user,
+            NuEntitleUserRequest,
         )
 
     def _get_resolver(self, txn):
@@ -453,3 +462,13 @@ class AccountService(Service):
         return GetLockerURLResponse(
             url="http://bfbc2.gos.ea.com/fileupload/locker2.jsp"
         )
+
+    def __handle_nu_entitle_user(self, data: NuEntitleUserRequest):
+        productList = self.database.entitle_user(
+            account_id=self.plasma.profileId, key=data.key
+        )
+
+        if isinstance(productList, ErrorCode):
+            return TransactionError(productList)
+
+        return NuEntitleUserResponse(productList=productList)

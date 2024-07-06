@@ -23,6 +23,7 @@ class Transaction(Enum):
     GetTelemetryToken = "GetTelemetryToken"
     NuGetEntitlements = "NuGetEntitlements"
     GetLockerURL = "GetLockerURL"
+    NuEntitleUser = "NuEntitleUser"
 
     # Plasma (Assocation)
     GetAssociations = "GetAssociations"
