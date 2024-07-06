@@ -7,9 +7,12 @@ from pydantic import SecretStr
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
 from bfbc2_masterserver.messages.Account import Account
+from bfbc2_masterserver.messages.Message import Message
 from bfbc2_masterserver.messages.Persona import Persona
 from bfbc2_masterserver.messages.plasma.Association import Association
 from bfbc2_masterserver.messages.plasma.Entitlement import Entitlement
+from bfbc2_masterserver.messages.Record import Record
+from bfbc2_masterserver.messages.Stats import Stat
 
 
 class BaseDatabase(ABC):
@@ -150,4 +153,20 @@ class BaseDatabase(ABC):
 
     @abstractmethod
     def _add_key(self, data, consumable=True) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def entitle_user(self, account_id, key) -> list[Entitlement] | ErrorCode:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_messages(self, persona_id) -> list[Message]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_stats(self, persona_id, keys) -> list[Stat]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_records(self, persona_id, type) -> list[Record]:
         raise NotImplementedError()

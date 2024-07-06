@@ -10,13 +10,19 @@ from bfbc2_masterserver.database.database import BaseDatabase
 from bfbc2_masterserver.database.mongo.documents.Accounts import Accounts
 from bfbc2_masterserver.database.mongo.documents.Entitlements import Entitlements
 from bfbc2_masterserver.database.mongo.documents.Keys import Keys
+from bfbc2_masterserver.database.mongo.documents.Messages import Messages
 from bfbc2_masterserver.database.mongo.documents.Personas import Personas
+from bfbc2_masterserver.database.mongo.documents.Records import Records
+from bfbc2_masterserver.database.mongo.documents.Stats import Stats as StatsDocument
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
 from bfbc2_masterserver.messages.Account import Account
+from bfbc2_masterserver.messages.Message import Attachment, Message, Target
 from bfbc2_masterserver.messages.Persona import Persona
 from bfbc2_masterserver.messages.plasma.Association import Association
 from bfbc2_masterserver.messages.plasma.Entitlement import Entitlement
+from bfbc2_masterserver.messages.Record import Record
+from bfbc2_masterserver.messages.Stats import Stat
 
 
 class MongoDB(BaseDatabase):
@@ -278,7 +284,7 @@ class MongoDB(BaseDatabase):
         return [
             Entitlement(
                 userId=account_id,
-                entitlementId=entitlement.id,
+                entitlementId=str(entitlement.id),
                 entitlementTag=entitlement.tag,
                 grantDate=entitlement.grant_date,
                 terminationDate=entitlement.termination_date,
@@ -309,3 +315,122 @@ class MongoDB(BaseDatabase):
             ],
             consumable=consumable,
         ).save()
+
+    def entitle_user(self, account_id, key) -> list[Entitlement] | ErrorCode:
+        account = Accounts.objects(id=account_id).first()
+
+        if isinstance(account, Accounts) is False:
+            return ErrorCode.USER_NOT_FOUND
+
+        key = Keys.objects(key=key, active=True).first()
+
+        if isinstance(key, Keys) is False:
+            return ErrorCode.CODE_NOT_FOUND
+
+        entitlements = []
+
+        # Add the entitlement to the account
+        for target in key.targets:
+            entitlement = Entitlements(
+                tag=target.tag,
+                grant_date=datetime.now(),
+                termination_date=None,
+                group_name=target.group,
+                product_id=target.product,
+                version=0,
+                is_game_entitlement=target.isGameEntitlement,
+            )
+
+            entitlement.save()
+            entitlements.append(entitlement)
+
+            account.entitlements.append(entitlement)
+            account.save()
+
+        if key.consumable:
+            key.active = False
+            key.save()
+
+        return [
+            Entitlement(
+                userId=account_id,
+                entitlementId=str(entitlement.id),
+                entitlementTag=entitlement.tag,
+                grantDate=entitlement.grant_date,
+                terminationDate=entitlement.termination_date,
+                groupName=entitlement.group_name,
+                productId=entitlement.product_id,
+                version=entitlement.version,
+                status="ACTIVE",
+            )
+            for entitlement in entitlements
+        ]
+
+    def get_messages(self, persona_id) -> list[Message]:
+        # Get messages for the account (look for messages with the account in the receivers list)
+        messages_db = Messages.objects(receivers__in=[persona_id]).all()
+
+        messages = [
+            Message(
+                attachments=[
+                    Attachment(
+                        key=attachment.key,
+                        type=attachment.type,
+                        data=attachment.data,
+                    )
+                    for attachment in message.attachments
+                ],
+                deliveryType=message.deliveryType,
+                messageId=message.messageId,
+                messageType=message.messageType,
+                purgeStrategy=message.purgeStrategy,
+                from_=Target(
+                    name=message.sender.name,
+                    id=message.sender.id,
+                    type=1,
+                ),
+                to=[
+                    Target(
+                        name=receiver.name,
+                        id=receiver.id,
+                        type=1,
+                    )
+                    for receiver in message.receivers
+                ],
+                timeSent=message.timeSent,
+                expiration=message.expiration,
+            )
+            for message in messages_db
+        ]
+
+        return messages
+
+    def get_stats(self, persona_id, keys) -> list[Stat]:
+        statsDoc = StatsDocument.objects(persona_id=persona_id).first()
+
+        if not statsDoc:
+            statsDoc = []
+
+        statsDict = dict(statsDoc)
+
+        stats = []
+
+        for key in keys:
+            stat = Stat(key=key, value=statsDict.get(key, 0))
+            stats.append(stat)
+
+        return stats
+
+    def get_records(self, persona_id, type) -> list[Record]:
+        recordsDoc = Records.objects(persona_id=persona_id, name=type).all()
+
+        records = [
+            Record(
+                key=record.key,
+                value=record.value,
+                updated=record.updated,
+            )
+            for record in recordsDoc
+        ]
+
+        return records
