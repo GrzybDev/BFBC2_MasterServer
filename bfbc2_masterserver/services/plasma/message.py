@@ -49,8 +49,11 @@ class ExtensibleMessageService(Service):
         """
         return self.generators[Transaction(txn)]
 
-    def __handle_modify_settings(self, data: ModifySettingsRequest):
+    def __handle_modify_settings(
+        self, data: ModifySettingsRequest
+    ) -> ModifySettingsResponse:
         return ModifySettingsResponse()
 
-    def __handle_get_messages(self, data: GetMessagesRequest):
-        return GetMessagesResponse(messages=[])
+    def __handle_get_messages(self, data: GetMessagesRequest) -> GetMessagesResponse:
+        messages = self.database.get_messages(self.plasma.userId)
+        return GetMessagesResponse(messages=messages)
