@@ -1,3 +1,5 @@
+import re
+
 from pydantic import field_validator
 
 from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
@@ -12,8 +14,8 @@ class NuAddPersonaRequest(PlasmaTransaction):
         if len(v) <= 4 and len(v) >= 16:
             raise ValueError("Persona name must be between 4 and 16 characters long")
 
-        # A-Z, a-z, 0-9
-        if not v.isalnum():
+        # A-Z, a-z, 0-9, .
+        if not re.match(r"^\w.+$", v):
             raise ValueError("Persona name must only contain alphanumeric characters")
 
         return v
