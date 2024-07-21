@@ -273,7 +273,9 @@ class Message:
     # Method to convert the data to a string
     def __convert_data(self):
         final_data = ""
-        temp_data = self.__flatten(self.data.model_dump(exclude_none=True))
+        temp_data = self.__flatten(
+            self.data.model_dump(exclude_none=True, by_alias=True)
+        )
 
         # For each key-value pair in the flattened data
         for key in temp_data:
