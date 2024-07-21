@@ -35,6 +35,8 @@ class Message:
     type: int
     data: Any = {}
 
+    multiple = False
+
     __length = 0
 
     def __init__(self, **kwargs):
@@ -130,10 +132,13 @@ class Message:
         )
 
         # If the received length does not match the extracted length, raise an exception
-        if received_length != self.__length:
+        if received_length < self.__length:
             raise Exception(
                 f"Packet length does not match (Received: {received_length}, Expected: {self.__length})"
             )
+        elif received_length > self.__length:
+            self.multiple = True
+            return
 
         # Read the data from the raw data
         self.__read_data(raw_data, HEADER_LENGTH)

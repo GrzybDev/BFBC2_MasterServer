@@ -5,9 +5,8 @@ from fastapi import WebSocketDisconnect
 from redis import Redis
 
 from bfbc2_masterserver.database.database import BaseDatabase
-from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.message.MessageType import MessageType
-from bfbc2_masterserver.message import Message
+from bfbc2_masterserver.message import LENGTH_LENGTH, LENGTH_OFFSET, Message
 from bfbc2_masterserver.plasma import Plasma
 from bfbc2_masterserver.theater import Theater
 
@@ -60,21 +59,39 @@ class Manager:
 
         try:
             while True:
-                message = Message(raw_data=await websocket.receive_bytes())
-                message_type = MessageType(message.type & 0xFF000000)
+                raw_data = await websocket.receive_bytes()
+                message = Message(raw_data=raw_data)
+                messages = []
 
-                if message_type in [
-                    MessageType.PlasmaRequest,
-                    MessageType.PlasmaResponse,
-                ]:
-                    await plasma.handle_transaction(message, message_type)
-                elif message_type in [
-                    MessageType.TheaterRequest,
-                    MessageType.TheaterResponse,
-                ]:
-                    await theater.handle_transaction(message)
+                if message.multiple:
+                    # If the message is multiple, split it into individual messages
+
+                    while raw_data:
+                        message_length = int.from_bytes(
+                            raw_data[LENGTH_OFFSET : LENGTH_OFFSET + LENGTH_LENGTH],
+                            byteorder="big",
+                        )
+                        messages.append(raw_data[:message_length])
+                        raw_data = raw_data[message_length:]
                 else:
-                    raise ValueError("Unknown message type")
+                    messages.append(raw_data)
+
+                for raw_message in messages:
+                    message = Message(raw_data=raw_message)
+                    message_type = MessageType(message.type & 0xFF000000)
+
+                    if message_type in [
+                        MessageType.PlasmaRequest,
+                        MessageType.PlasmaResponse,
+                    ]:
+                        await plasma.handle_transaction(message, message_type)
+                    elif message_type in [
+                        MessageType.TheaterRequest,
+                        MessageType.TheaterResponse,
+                    ]:
+                        await theater.handle_transaction(message)
+                    else:
+                        raise ValueError("Unknown message type")
         except WebSocketDisconnect:
             pass
         except Exception as e:
