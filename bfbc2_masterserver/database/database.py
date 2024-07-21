@@ -7,12 +7,18 @@ from pydantic import SecretStr
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
 from bfbc2_masterserver.messages.Account import Account
+from bfbc2_masterserver.messages.Game import GameServer
 from bfbc2_masterserver.messages.Message import Message
 from bfbc2_masterserver.messages.Persona import Persona
 from bfbc2_masterserver.messages.plasma.Association import Association
 from bfbc2_masterserver.messages.plasma.Entitlement import Entitlement
+from bfbc2_masterserver.messages.plasma.ranking.GetTopNAndStats import Leaderboard
 from bfbc2_masterserver.messages.Record import Record
-from bfbc2_masterserver.messages.Stats import Stat
+from bfbc2_masterserver.messages.Stats import RankedStat, Stat
+from bfbc2_masterserver.messages.theater.commands.CreateGame import CreateGameRequest
+from bfbc2_masterserver.messages.theater.commands.GetGameList import GameData
+from bfbc2_masterserver.messages.theater.commands.GetLobbyList import Lobby
+from bfbc2_masterserver.messages.theater.commands.UpdateGame import UpdateGameRequest
 
 
 class BaseDatabase(ABC):
@@ -95,6 +101,8 @@ class BaseDatabase(ABC):
         for key in default_keys:
             self._add_key(key, consumable=False)
 
+        self._add_lobby("bfbc2PC01", "en_US")
+
     @abstractmethod
     def register(self, **kwargs) -> bool | ErrorCode:
         raise NotImplementedError()
@@ -168,5 +176,37 @@ class BaseDatabase(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def get_ranked_stats(self, persona_id, keys) -> list[RankedStat]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_leaderboard(self, keys) -> list[Leaderboard]:
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_records(self, persona_id, type) -> list[Record]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_lobbies(self) -> list[Lobby]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _add_lobby(self, name, locale) -> bool | ErrorCode:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_lobby_games_count(self, lobby_id) -> int:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_lobby_games(self, lobby_id) -> list[GameData]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def create_game(self, request: CreateGameRequest) -> GameServer:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def update_game(self, request: UpdateGameRequest) -> bool:
         raise NotImplementedError()
