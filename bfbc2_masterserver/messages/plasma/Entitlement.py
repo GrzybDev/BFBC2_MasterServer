@@ -11,6 +11,6 @@ class Entitlement(BaseModel):
     entitlementTag: str
     version: int
     terminationDate: Optional[datetime]
-    productId: str
+    productId: Optional[str] = None
     entitlementId: str
     status: str
