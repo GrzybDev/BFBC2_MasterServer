@@ -6,11 +6,35 @@ from bfbc2_masterserver.enumerators.message.MessageType import MessageType
 from bfbc2_masterserver.enumerators.theater.TheaterCommand import TheaterCommand
 from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.messages.theater.commands.Connect import ConnectRequest
+from bfbc2_masterserver.messages.theater.commands.CreateGame import CreateGameRequest
 from bfbc2_masterserver.messages.theater.commands.Echo import EchoRequest
+from bfbc2_masterserver.messages.theater.commands.GetGameDetails import (
+    GetGameDetailsRequest,
+)
+from bfbc2_masterserver.messages.theater.commands.GetGameList import GetGameListRequest
+from bfbc2_masterserver.messages.theater.commands.GetLobbyList import (
+    GetLobbyListRequest,
+)
 from bfbc2_masterserver.messages.theater.commands.Login import LoginRequest
+from bfbc2_masterserver.messages.theater.commands.UpdateBracket import (
+    UpdateBracketRequest,
+)
+from bfbc2_masterserver.messages.theater.commands.UpdateGame import UpdateGameRequest
+from bfbc2_masterserver.messages.theater.commands.UpdateGameDetails import (
+    UpdateGameDetailsRequest,
+)
 from bfbc2_masterserver.services.theater.connect import handle_connect
+from bfbc2_masterserver.services.theater.create_game import handle_create_game
 from bfbc2_masterserver.services.theater.echo import handle_echo
+from bfbc2_masterserver.services.theater.get_game_details import handle_get_game_details
+from bfbc2_masterserver.services.theater.get_game_list import handle_get_game_list
+from bfbc2_masterserver.services.theater.get_lobby_list import handle_get_lobby_list
 from bfbc2_masterserver.services.theater.login import handle_login
+from bfbc2_masterserver.services.theater.update_bracket import handle_update_bracket
+from bfbc2_masterserver.services.theater.update_game import handle_update_game
+from bfbc2_masterserver.services.theater.update_game_details import (
+    handle_update_game_details,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +42,8 @@ logger = logging.getLogger(__name__)
 class Theater:
 
     initialized = False
+    update_in_progress = False
+
     transactionID = None
 
     handlers = {}
@@ -31,6 +57,37 @@ class Theater:
         self.handlers[TheaterCommand.Connect] = handle_connect, ConnectRequest
         self.handlers[TheaterCommand.Login] = handle_login, LoginRequest
         self.handlers[TheaterCommand.Echo] = handle_echo, EchoRequest
+        self.handlers[TheaterCommand.GetGameDetails] = (
+            handle_get_game_details,
+            GetGameDetailsRequest,
+        )
+
+        self.handlers[TheaterCommand.GetLobbyList] = (
+            handle_get_lobby_list,
+            GetLobbyListRequest,
+        )
+
+        self.handlers[TheaterCommand.GetGameList] = (
+            handle_get_game_list,
+            GetGameListRequest,
+        )
+
+        self.handlers[TheaterCommand.CreateGame] = handle_create_game, CreateGameRequest
+
+        self.handlers[TheaterCommand.UpdateBracket] = (
+            handle_update_bracket,
+            UpdateBracketRequest,
+        )
+
+        self.handlers[TheaterCommand.UpdateGame] = (
+            handle_update_game,
+            UpdateGameRequest,
+        )
+
+        self.handlers[TheaterCommand.UpdateGameDetails] = (
+            handle_update_game_details,
+            UpdateGameDetailsRequest,
+        )
 
     async def handle_transaction(self, message: Message):
         try:
@@ -64,6 +121,10 @@ class Theater:
             for response in responses:
                 if response is None:
                     continue
+
+                if isinstance(response, tuple):
+                    response, command = response
+                    message.service = command.value
 
                 message.type = MessageType.TheaterResponse.value
 
