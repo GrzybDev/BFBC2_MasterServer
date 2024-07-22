@@ -6,19 +6,19 @@ from pydantic import SecretStr
 
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
-from bfbc2_masterserver.messages.Account import Account
-from bfbc2_masterserver.messages.Game import GameServer
-from bfbc2_masterserver.messages.Message import Message
-from bfbc2_masterserver.messages.Persona import Persona
-from bfbc2_masterserver.messages.plasma.Association import Association
-from bfbc2_masterserver.messages.plasma.Entitlement import Entitlement
 from bfbc2_masterserver.messages.plasma.ranking.GetTopNAndStats import Leaderboard
-from bfbc2_masterserver.messages.Record import Record
-from bfbc2_masterserver.messages.Stats import RankedStat, Stat
 from bfbc2_masterserver.messages.theater.commands.CreateGame import CreateGameRequest
 from bfbc2_masterserver.messages.theater.commands.GetGameList import GameData
 from bfbc2_masterserver.messages.theater.commands.GetLobbyList import Lobby
 from bfbc2_masterserver.messages.theater.commands.UpdateGame import UpdateGameRequest
+from bfbc2_masterserver.models.plasma.database.Account import Account
+from bfbc2_masterserver.models.plasma.database.Association import Association
+from bfbc2_masterserver.models.plasma.database.Entitlement import Entitlement
+from bfbc2_masterserver.models.plasma.database.Game import GameServer
+from bfbc2_masterserver.models.plasma.database.Message import Message
+from bfbc2_masterserver.models.plasma.database.Persona import Persona
+from bfbc2_masterserver.models.plasma.database.Record import Record
+from bfbc2_masterserver.models.plasma.database.Stats import RankedStat, Stat
 
 
 class BaseDatabase(ABC):

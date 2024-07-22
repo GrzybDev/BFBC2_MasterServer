@@ -1,4 +1,5 @@
-from bfbc2_masterserver.enumerators.Transaction import Transaction
+from bfbc2_masterserver.dataclasses.plasma.Service import PlasmaService
+from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
 from bfbc2_masterserver.messages.plasma.message.GetMessages import (
     GetMessagesRequest,
     GetMessagesResponse,
@@ -7,20 +8,20 @@ from bfbc2_masterserver.messages.plasma.message.ModifySettings import (
     ModifySettingsRequest,
     ModifySettingsResponse,
 )
-from bfbc2_masterserver.services.service import Service
+from bfbc2_masterserver.models.plasma.database.Message import Message
 
 
-class ExtensibleMessageService(Service):
+class ExtensibleMessageService(PlasmaService):
 
     def __init__(self, plasma) -> None:
         super().__init__(plasma)
 
-        self.resolvers[Transaction.ModifySettings] = (
+        self.resolvers[FESLTransaction.ModifySettings] = (
             self.__handle_modify_settings,
             ModifySettingsRequest,
         )
 
-        self.resolvers[Transaction.GetMessages] = (
+        self.resolvers[FESLTransaction.GetMessages] = (
             self.__handle_get_messages,
             GetMessagesRequest,
         )
@@ -35,7 +36,7 @@ class ExtensibleMessageService(Service):
         Returns:
             The resolver function for the transaction.
         """
-        return self.resolvers[Transaction(txn)]
+        return self.resolvers[FESLTransaction(txn)]
 
     def _get_generator(self, txn):
         """
@@ -47,7 +48,7 @@ class ExtensibleMessageService(Service):
         Returns:
             The generator function for the transaction.
         """
-        return self.generators[Transaction(txn)]
+        return self.generators[FESLTransaction(txn)]
 
     def __handle_modify_settings(
         self, data: ModifySettingsRequest
@@ -55,5 +56,7 @@ class ExtensibleMessageService(Service):
         return ModifySettingsResponse()
 
     def __handle_get_messages(self, data: GetMessagesRequest) -> GetMessagesResponse:
-        messages = self.database.get_messages(self.plasma.userId)
+        messages: list[Message] = self.database.get_messages(
+            self.plasma.connection.personaId
+        )
         return GetMessagesResponse(messages=messages)

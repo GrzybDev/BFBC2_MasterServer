@@ -1,6 +1,6 @@
 from typing import Optional
 
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
 
 
 class NuGetTosRequest(PlasmaTransaction):

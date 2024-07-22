@@ -1,29 +1,29 @@
+from bfbc2_masterserver.dataclasses.plasma.Service import PlasmaService
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
-from bfbc2_masterserver.enumerators.Transaction import Transaction
+from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
 from bfbc2_masterserver.error import TransactionError
 from bfbc2_masterserver.messages.plasma.record.GetRecord import (
     GetRecordRequest,
     GetRecordResponse,
-    Record,
 )
 from bfbc2_masterserver.messages.plasma.record.GetRecordAsMap import (
     GetRecordAsMapRequest,
     GetRecordAsMapResponse,
 )
-from bfbc2_masterserver.services.service import Service
+from bfbc2_masterserver.models.plasma.database.Record import Record
 
 
-class RecordService(Service):
+class RecordService(PlasmaService):
 
     def __init__(self, plasma) -> None:
         super().__init__(plasma)
 
-        self.resolvers[Transaction.GetRecordAsMap] = (
+        self.resolvers[FESLTransaction.GetRecordAsMap] = (
             self.__handle_get_record_as_map,
             GetRecordAsMapRequest,
         )
 
-        self.resolvers[Transaction.GetRecord] = (
+        self.resolvers[FESLTransaction.GetRecord] = (
             self.__handle_get_record,
             GetRecordRequest,
         )
@@ -38,7 +38,7 @@ class RecordService(Service):
         Returns:
             The resolver function for the transaction.
         """
-        return self.resolvers[Transaction(txn)]
+        return self.resolvers[FESLTransaction(txn)]
 
     def _get_generator(self, txn):
         """
@@ -50,10 +50,14 @@ class RecordService(Service):
         Returns:
             The generator function for the transaction.
         """
-        return self.generators[Transaction(txn)]
+        return self.generators[FESLTransaction(txn)]
 
-    def __handle_get_record_as_map(self, data: GetRecordAsMapRequest):
-        records = self.database.get_records(self.plasma.userId, data.recordName)
+    def __handle_get_record_as_map(
+        self, data: GetRecordAsMapRequest
+    ) -> GetRecordAsMapResponse | TransactionError:
+        records = self.database.get_records(
+            self.plasma.connection.personaId, data.recordName
+        )
 
         if not records:
             return TransactionError(ErrorCode.RECORD_NOT_FOUND)
@@ -63,8 +67,12 @@ class RecordService(Service):
             state=1, TTL=0, lastModified=records[0].updated, values=values
         )
 
-    def __handle_get_record(self, data: GetRecordRequest):
-        records = self.database.get_records(self.plasma.userId, data.recordName)
+    def __handle_get_record(
+        self, data: GetRecordRequest
+    ) -> GetRecordResponse | TransactionError:
+        records = self.database.get_records(
+            self.plasma.connection.personaId, data.recordName
+        )
 
         if not records:
             return TransactionError(ErrorCode.RECORD_NOT_FOUND)

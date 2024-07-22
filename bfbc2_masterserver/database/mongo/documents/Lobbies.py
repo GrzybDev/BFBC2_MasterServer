@@ -1,4 +1,4 @@
-from mongoengine import Document, IntField, StringField
+from mongoengine import Document, IntField, QuerySet, StringField
 
 
 class Lobbies(Document):

@@ -2,10 +2,10 @@ from typing import Optional
 
 from pydantic import Field
 
-from bfbc2_masterserver.messages.theater.TheaterMessage import TheaterMessage
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
-class UpdateGameRequest(TheaterMessage):
+class UpdateGameRequest(TheaterTransaction):
     class Config:
         extra = "allow"
 
@@ -13,5 +13,5 @@ class UpdateGameRequest(TheaterMessage):
     GID: int
 
 
-class UpdateGameResponse(TheaterMessage):
+class UpdateGameResponse(TheaterTransaction):
     pass

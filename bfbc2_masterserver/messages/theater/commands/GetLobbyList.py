@@ -1,9 +1,9 @@
 from pydantic import Field
 
-from bfbc2_masterserver.messages.theater.TheaterMessage import TheaterMessage
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
-class GetLobbyListRequest(TheaterMessage):
+class GetLobbyListRequest(TheaterTransaction):
     FILTER_FAV_ONLY: bool = Field(alias="FILTER-FAV-ONLY")
     FILTER_NOT_FULL: bool = Field(alias="FILTER-NOT-FULL")
     FILTER_NOT_PRIVATE: bool = Field(alias="FILTER-NOT-PRIVATE")
@@ -14,11 +14,11 @@ class GetLobbyListRequest(TheaterMessage):
     FAV_PLAYER_UID: str = Field(alias="FAV-PLAYER-UID")
 
 
-class GetLobbyListResponse(TheaterMessage):
+class GetLobbyListResponse(TheaterTransaction):
     NUM_LOBBIES: int = Field(alias="NUM-LOBBIES")
 
 
-class Lobby(TheaterMessage):
+class Lobby(TheaterTransaction):
     LID: int
     PASSING: int
     NAME: str

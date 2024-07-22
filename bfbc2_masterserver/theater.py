@@ -1,8 +1,11 @@
 import logging
 
+from fastapi import WebSocket
 from pydantic import ValidationError
 
-from bfbc2_masterserver.enumerators.message.MessageType import MessageType
+from bfbc2_masterserver.dataclasses.Handler import BaseHandler, BaseTheaterHandler
+from bfbc2_masterserver.dataclasses.Manager import BaseManager
+from bfbc2_masterserver.enumerators.fesl.MessageType import MessageType
 from bfbc2_masterserver.enumerators.theater.TheaterCommand import TheaterCommand
 from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.messages.theater.commands.Connect import ConnectRequest
@@ -39,19 +42,14 @@ from bfbc2_masterserver.services.theater.update_game_details import (
 logger = logging.getLogger(__name__)
 
 
-class Theater:
-
-    initialized = False
-    update_in_progress = False
-
-    transactionID = None
+class Theater(BaseTheaterHandler):
 
     handlers = {}
 
-    def __init__(self, manager, plasma, ws) -> None:
-        self.manager = manager
-        self.plasma = plasma
-        self.ws = ws
+    def __init__(self, manager: BaseManager, plasma: BaseHandler, ws: WebSocket):
+        self.manager: BaseManager = manager
+        self.plasma: BaseHandler = plasma
+        self.websocket: WebSocket = ws
 
         # Register the handlers
         self.handlers[TheaterCommand.Connect] = handle_connect, ConnectRequest
@@ -89,7 +87,7 @@ class Theater:
             UpdateGameDetailsRequest,
         )
 
-    async def handle_transaction(self, message: Message):
+    async def handle_transaction(self, message: Message) -> None:
         try:
             command = TheaterCommand(message.service)
         except ValueError:
@@ -98,17 +96,15 @@ class Theater:
 
         tid = message.data["TID"]
 
-        if not self.initialized and command == TheaterCommand.Connect:
+        if not self.isInitialized and command == TheaterCommand.Connect:
             self.transactionID = tid
-        elif not self.initialized:
+        elif not self.isInitialized:
             raise ValueError("Theater is not initialized")
 
         try:
             handler, model = self.handlers[command]
             message.data = model.model_validate(message.data)
-            logger.debug(
-                f"{self.plasma.ws.client.host}:{self.plasma.ws.client.port} -> {message}"
-            )
+            logger.debug(f"{self.get_client_address()} -> {message}")
             responses = handler(self, message.data)
         except ValidationError as e:
             raise ValueError(f"Invalid message: {e}")
@@ -135,14 +131,12 @@ class Theater:
 
                 await self.__send(message)
 
-                logger.debug(
-                    f"{self.plasma.ws.client.host}:{self.plasma.ws.client.port} <- {message}"
-                )
+                logger.debug(f"{self.get_client_address()} <- {message}")
 
             if command != TheaterCommand.Echo:
                 self.transactionID += 1
 
-    async def __send(self, message: Message):
+    async def __send(self, message: Message) -> None:
         # Compile the response into bytes
         response_bytes = message.compile()
-        await self.ws.send_bytes(response_bytes)
+        await self.websocket.send_bytes(response_bytes)

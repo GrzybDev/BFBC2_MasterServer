@@ -1,5 +1,5 @@
-from bfbc2_masterserver.messages.plasma.PingSite import PingSite
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.PingSite import PingSite
 
 
 class GetPingSitesRequest(PlasmaTransaction):

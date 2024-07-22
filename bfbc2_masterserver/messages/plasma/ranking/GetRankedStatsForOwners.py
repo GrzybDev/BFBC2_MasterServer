@@ -1,6 +1,6 @@
-from bfbc2_masterserver.messages.plasma.Owner import RankedOwner
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
-from bfbc2_masterserver.messages.Stats import RankedStat, RankedStatReturn, Stat
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.database.Stats import RankedOwnerStat
+from bfbc2_masterserver.models.plasma.Owner import RankedOwner
 
 
 class GetRankedStatsForOwnersRequest(PlasmaTransaction):
@@ -10,4 +10,4 @@ class GetRankedStatsForOwnersRequest(PlasmaTransaction):
 
 
 class GetRankedStatsForOwnersResponse(PlasmaTransaction):
-    rankedStats: list[RankedStatReturn]
+    rankedStats: list[RankedOwnerStat]

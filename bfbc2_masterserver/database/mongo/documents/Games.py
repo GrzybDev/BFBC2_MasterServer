@@ -1,4 +1,4 @@
-from mongoengine import Document, IntField, ListField, StringField
+from mongoengine import Document, IntField, ListField, QuerySet, StringField
 
 
 class Games(Document):

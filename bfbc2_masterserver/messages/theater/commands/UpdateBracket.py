@@ -1,9 +1,9 @@
-from bfbc2_masterserver.messages.theater.TheaterMessage import TheaterMessage
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
-class UpdateBracketRequest(TheaterMessage):
+class UpdateBracketRequest(TheaterTransaction):
     START: bool
 
 
-class UpdateBracketResponse(TheaterMessage):
+class UpdateBracketResponse(TheaterTransaction):
     pass

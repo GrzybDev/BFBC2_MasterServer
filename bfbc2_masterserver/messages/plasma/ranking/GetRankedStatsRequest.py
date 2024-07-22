@@ -1,5 +1,5 @@
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
-from bfbc2_masterserver.messages.Stats import RankedStat
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.database.Stats import RankedStat
 
 
 class GetRankedStatsRequest(PlasmaTransaction):

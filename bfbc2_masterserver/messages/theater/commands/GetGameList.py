@@ -2,10 +2,10 @@ from typing import Optional
 
 from pydantic import Field, IPvAnyAddress
 
-from bfbc2_masterserver.messages.theater.TheaterMessage import TheaterMessage
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
-class GetGameListRequest(TheaterMessage):
+class GetGameListRequest(TheaterTransaction):
     LID: int
     GID: Optional[int] = None
     TYPE: str
@@ -22,14 +22,14 @@ class GetGameListRequest(TheaterMessage):
     FAV_GAME_UID: str = Field(alias="FAV-GAME-UID")
 
 
-class GetGameListResponse(TheaterMessage):
+class GetGameListResponse(TheaterTransaction):
     LOBBY_NUM_GAMES: int = Field(alias="LOBBY-NUM-GAMES")
     NUM_GAMES: int = Field(alias="NUM-GAMES")
     LID: int
     LOBBY_MAX_GAMES: int = Field(alias="LOBBY-MAX-GAMES")
 
 
-class GameData(TheaterMessage):
+class GameData(TheaterTransaction):
     LID: int
     GID: int
     N: str

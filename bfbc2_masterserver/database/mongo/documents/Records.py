@@ -4,6 +4,7 @@ from mongoengine import (
     EnumField,
     FloatField,
     IntField,
+    QuerySet,
 )
 
 from bfbc2_masterserver.messages.plasma.record.GetRecord import RecordName

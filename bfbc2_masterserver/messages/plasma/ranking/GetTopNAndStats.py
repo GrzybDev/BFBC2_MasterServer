@@ -1,11 +1,5 @@
-from pydantic import BaseModel
-
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
-from bfbc2_masterserver.messages.Stats import Stat
-
-
-class Leaderboard(BaseModel):
-    addStats: list[Stat]
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.Leaderboard import Leaderboard
 
 
 class GetTopNAndStatsRequest(PlasmaTransaction):

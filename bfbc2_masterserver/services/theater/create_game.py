@@ -1,14 +1,16 @@
+from bfbc2_masterserver.database.database import BaseDatabase
+from bfbc2_masterserver.dataclasses.Handler import BaseTheaterHandler
 from bfbc2_masterserver.messages.theater.commands.CreateGame import (
     CreateGameRequest,
     CreateGameResponse,
 )
 from bfbc2_masterserver.messages.theater.commands.Echo import EchoRequest, EchoResponse
+from bfbc2_masterserver.models.plasma.database.Game import GameServer
 
 
-def handle_create_game(ctx, data: CreateGameRequest):
-    database = ctx.manager.database
-
-    gameData = database.create_game(data)
+def handle_create_game(ctx: BaseTheaterHandler, data: CreateGameRequest):
+    database: BaseDatabase = ctx.manager.database
+    gameData: GameServer = database.create_game(data)
 
     yield CreateGameResponse.model_validate(
         {

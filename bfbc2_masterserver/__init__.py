@@ -22,7 +22,7 @@ app.mount("/easo", StaticFiles(directory="static"), name="EASO")
 
 
 @app.get("/fileupload/locker2.jsp")
-async def locker(site: str, cmd: str, lkey: str, pers: str, game: str):
+async def locker(site: str, cmd: str, lkey: str, pers: str, game: str) -> Response:
     # More-or-less original server behaviour
     response = '<?xml version="1.0" encoding="UTF-8"?>'
 
@@ -46,7 +46,7 @@ async def locker(site: str, cmd: str, lkey: str, pers: str, game: str):
 
 # Define WebSocket endpoint
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket) -> None:
     """
     This is a WebSocket endpoint for the FastAPI application.
 

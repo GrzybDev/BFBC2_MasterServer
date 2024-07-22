@@ -1,3 +1,4 @@
+from bfbc2_masterserver.dataclasses.Handler import BaseTheaterHandler
 from bfbc2_masterserver.enumerators.theater.TheaterCommand import TheaterCommand
 from bfbc2_masterserver.messages.theater.commands.GetGameList import (
     GetGameListRequest,
@@ -5,7 +6,7 @@ from bfbc2_masterserver.messages.theater.commands.GetGameList import (
 )
 
 
-def handle_get_game_list(ctx, data: GetGameListRequest):
+def handle_get_game_list(ctx: BaseTheaterHandler, data: GetGameListRequest):
     database = ctx.manager.database
 
     games = database.get_lobby_games(data.LID)

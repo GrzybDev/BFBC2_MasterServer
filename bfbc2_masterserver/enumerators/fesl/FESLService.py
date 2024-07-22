@@ -1,9 +1,7 @@
 from enum import Enum
 
-from bfbc2_masterserver.services.plasma.account import AccountService
 
-
-class PlasmaService(Enum):
+class FESLService(Enum):
     ConnectService = "fsys"
     AccountService = "acct"
     AssociationService = "asso"

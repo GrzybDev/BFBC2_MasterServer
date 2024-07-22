@@ -1,7 +1,7 @@
-from bfbc2_masterserver.messages.theater.TheaterMessage import TheaterMessage
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
-class LoginRequest(TheaterMessage):
+class LoginRequest(TheaterTransaction):
     CID: str
     MAC: str
     SKU: str
@@ -9,5 +9,5 @@ class LoginRequest(TheaterMessage):
     NAME: str
 
 
-class LoginResponse(TheaterMessage):
+class LoginResponse(TheaterTransaction):
     NAME: str

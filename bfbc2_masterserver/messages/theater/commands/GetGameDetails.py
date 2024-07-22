@@ -1,9 +1,9 @@
-from bfbc2_masterserver.messages.theater.TheaterMessage import TheaterMessage
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
-class GetGameDetailsRequest(TheaterMessage):
+class GetGameDetailsRequest(TheaterTransaction):
     pass
 
 
-class GetGameDetailsResponse(TheaterMessage):
+class GetGameDetailsResponse(TheaterTransaction):
     pass

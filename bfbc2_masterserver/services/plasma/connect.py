@@ -3,15 +3,13 @@ import random
 import string
 from datetime import datetime
 
-from httpx import request
-from pydantic import ValidationError
-
+from bfbc2_masterserver.dataclasses.Connection import BaseConnection
+from bfbc2_masterserver.dataclasses.plasma.Service import PlasmaService
 from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
-from bfbc2_masterserver.enumerators.plasma.PlasmaService import PlasmaService
-from bfbc2_masterserver.enumerators.Transaction import Transaction
+from bfbc2_masterserver.enumerators.fesl.FESLService import FESLService
+from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
 from bfbc2_masterserver.error import TransactionError, TransactionSkip
-from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.messages.plasma.connect.GetPingSites import (
     GetPingSitesRequest,
     GetPingSitesResponse,
@@ -23,10 +21,9 @@ from bfbc2_masterserver.messages.plasma.connect.MemCheck import (
     MemCheckResult,
 )
 from bfbc2_masterserver.messages.plasma.connect.Ping import PingRequest, PingResponse
-from bfbc2_masterserver.messages.plasma.DomainPartition import DomainPartition
-from bfbc2_masterserver.messages.plasma.MemCheck import MemCheck
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
-from bfbc2_masterserver.services.service import Service
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.DomainPartition import DomainPartition
+from bfbc2_masterserver.models.plasma.MemCheck import MemCheck
 from bfbc2_masterserver.settings import (
     CLIENT_INITIAL_MEMCHECK_INTERVAL,
     CLIENT_MEMCHECK_INTERVAL,
@@ -42,23 +39,32 @@ from bfbc2_masterserver.settings import (
 )
 
 
-class ConnectService(Service):
+class ConnectService(PlasmaService):
     def __init__(self, plasma) -> None:
         super().__init__(plasma)
 
-        self.resolvers[Transaction.Hello] = self.__handle_hello, HelloRequest
-        self.resolvers[Transaction.MemCheck] = self.__handle_memcheck, MemCheckResult
-        self.resolvers[Transaction.GetPingSites] = (
+        self.resolvers[FESLTransaction.Hello] = self.__handle_hello, HelloRequest
+        self.resolvers[FESLTransaction.MemCheck] = (
+            self.__handle_memcheck,
+            MemCheckResult,
+        )
+        self.resolvers[FESLTransaction.GetPingSites] = (
             self.__handle_get_ping_sites,
             GetPingSitesRequest,
         )
-        self.resolvers[Transaction.Ping] = self.__handle_ping, PingResponse
-        self.resolvers[Transaction.Goodbye] = self.__handle_goodbye, GoodbyeRequest
-        self.resolvers[Transaction.Suicide] = self.__handle_suicide, PlasmaTransaction
+        self.resolvers[FESLTransaction.Ping] = self.__handle_ping, PingResponse
+        self.resolvers[FESLTransaction.Goodbye] = (
+            self.__handle_goodbye,
+            GoodbyeRequest,
+        )
+        self.resolvers[FESLTransaction.Suicide] = (
+            self.__handle_suicide,
+            PlasmaTransaction,
+        )
 
-        self.generators[Transaction.MemCheck] = self.__create_memcheck
-        self.generators[Transaction.Ping] = self.__create_ping
-        self.generators[Transaction.Goodbye] = self.__create_goodbye
+        self.generators[FESLTransaction.MemCheck] = self.__create_memcheck
+        self.generators[FESLTransaction.Ping] = self.__create_ping
+        self.generators[FESLTransaction.Goodbye] = self.__create_goodbye
 
     def _get_resolver(self, txn):
         """
@@ -70,7 +76,7 @@ class ConnectService(Service):
         Returns:
             The resolver function for the transaction.
         """
-        return self.resolvers[Transaction(txn)]
+        return self.resolvers[FESLTransaction(txn)]
 
     def _get_generator(self, txn):
         """
@@ -82,9 +88,9 @@ class ConnectService(Service):
         Returns:
             The generator function for the transaction.
         """
-        return self.generators[Transaction(txn)]
+        return self.generators[FESLTransaction(txn)]
 
-    def __handle_hello(self, data: HelloRequest):
+    def __handle_hello(self, data: HelloRequest) -> HelloResponse | TransactionError:
         """
         Handles the initial packet sent by client, used to determine client type, and other connection details
 
@@ -98,7 +104,7 @@ class ConnectService(Service):
             A HelloResponse if the data is valid.
         """
 
-        if self.plasma.initialized:
+        if hasattr(self.plasma, "connection"):
             return TransactionError(ErrorCode.SYSTEM_ERROR)
 
         theater_ip = THEATER_HOST.format(clientString=data.clientString)
@@ -128,10 +134,11 @@ class ConnectService(Service):
         # If not set, client will set this value to NULL internally (just like above)
         # No clue what this value is used for
 
-        self.plasma.clientString = data.clientString
-        self.plasma.clientLocale = data.locale
-        self.plasma.clientType = data.clientType
-        self.plasma.fragmentSize = data.fragmentSize
+        self.plasma.connection = BaseConnection()
+        self.plasma.connection.clientName = data.clientString
+        self.plasma.connection.locale = data.locale
+        self.plasma.connection.type = data.clientType
+        self.plasma.connection.fragmentSize = data.fragmentSize
 
         # Activate both ping and memcheck timers
         loop = asyncio.get_event_loop()
@@ -144,6 +151,7 @@ class ConnectService(Service):
             ),
             self.__make_ping,
         )
+
         self.plasma.timerMemCheck = loop.call_later(
             (
                 CLIENT_INITIAL_MEMCHECK_INTERVAL
@@ -155,11 +163,11 @@ class ConnectService(Service):
 
         # Start the MemCheck
         self.__make_memcheck()
-        self.plasma.initialized = True
+        self.plasma.connection.isInitialized = True
 
         return response
 
-    def __create_memcheck(self, data: dict):
+    def __create_memcheck(self, data: dict) -> MemCheckRequest:
         """
         Creates a memcheck request
         """
@@ -171,44 +179,46 @@ class ConnectService(Service):
 
         return request
 
-    def __handle_memcheck(self, data: MemCheckResult):
+    def __handle_memcheck(self, data: MemCheckResult) -> TransactionSkip:
         """
         Handles the memcheck request
         """
 
         return TransactionSkip()
 
-    def __make_ping(self):
+    def __make_ping(self) -> None:
         self.plasma.start_transaction(
-            PlasmaService.ConnectService, Transaction.Ping, PlasmaTransaction()
+            FESLService.ConnectService, FESLTransaction.Ping, PlasmaTransaction()
         )
 
         loop = asyncio.get_event_loop()
         self.plasma.timerPing = loop.call_later(
             (
                 CLIENT_PING_INTERVAL
-                if self.plasma.clientType == ClientType.Client
+                if self.plasma.connection.type == ClientType.Client
                 else SERVER_PING_INTERVAL
             ),
             self.__make_ping,
         )
 
-    def __make_memcheck(self):
+    def __make_memcheck(self) -> None:
         self.plasma.start_transaction(
-            PlasmaService.ConnectService, Transaction.MemCheck, PlasmaTransaction()
+            FESLService.ConnectService, FESLTransaction.MemCheck, PlasmaTransaction()
         )
 
         loop = asyncio.get_event_loop()
         self.plasma.timerMemCheck = loop.call_later(
             (
                 CLIENT_MEMCHECK_INTERVAL
-                if self.plasma.clientType == ClientType.Client
+                if self.plasma.connection.type == ClientType.Client
                 else SERVER_MEMCHECK_INTERVAL
             ),
             self.__make_memcheck,
         )
 
-    def __handle_get_ping_sites(self, data: GetPingSitesRequest):
+    def __handle_get_ping_sites(
+        self, data: GetPingSitesRequest
+    ) -> GetPingSitesResponse:
         """
         Handles the request for ping sites
 
@@ -248,30 +258,28 @@ class ConnectService(Service):
         # We don't have any ping sites to send so we just return an empty list
 
         ping_sites = []
-
         return GetPingSitesResponse(pingSite=ping_sites, minPingSitesToPing=0)
 
-    def __create_ping(self, data: dict):
+    def __create_ping(self, data: PingRequest) -> PingResponse:
         """
         Creates a ping request
         """
 
-        return PingRequest()
+        return PingResponse()
 
-    def __handle_ping(self, data: PingResponse):
+    def __handle_ping(self, data: PingRequest) -> TransactionSkip:
         """
         Handles the ping request
         """
 
         return TransactionSkip()
 
-    def __handle_goodbye(self, data: GoodbyeRequest):
+    def __handle_goodbye(self, data: GoodbyeRequest) -> TransactionSkip:
         """
         Handles the goodbye request
         """
 
-        self.plasma.disconnectReason = data.reason
-        self.plasma.disconnectMessage = data.message
+        self.plasma.on_disconnect(reason=data.reason, message=data.message)
 
         return TransactionSkip()
 
@@ -283,10 +291,5 @@ class ConnectService(Service):
 
         raise NotImplementedError()
 
-    def __create_goodbye(self, data):
-        try:
-            data = GoodbyeRequest.model_validate(data)
-        except ValidationError:
-            return TransactionError(ErrorCode.PARAMETERS_ERROR)
-
+    def __create_goodbye(self, data: GoodbyeRequest):
         return data

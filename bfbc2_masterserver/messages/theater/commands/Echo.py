@@ -1,12 +1,12 @@
-from bfbc2_masterserver.messages.theater.TheaterMessage import TheaterMessage
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
-class EchoRequest(TheaterMessage):
+class EchoRequest(TheaterTransaction):
     TYPE: int
     UID: int
 
 
-class EchoResponse(TheaterMessage):
+class EchoResponse(TheaterTransaction):
     TXN: str
     IP: str
     PORT: int

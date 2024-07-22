@@ -1,4 +1,4 @@
-from mongoengine import Document, FloatField, IntField
+from mongoengine import Document, FloatField, IntField, QuerySet
 
 
 class Stats(Document):

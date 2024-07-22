@@ -1,5 +1,5 @@
-from bfbc2_masterserver.messages.plasma.MemCheck import MemCheck
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.MemCheck import MemCheck
 
 
 class MemCheckRequest(PlasmaTransaction):

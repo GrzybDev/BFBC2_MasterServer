@@ -2,7 +2,7 @@ import re
 
 from pydantic import field_validator
 
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
 
 
 class NuAddPersonaRequest(PlasmaTransaction):

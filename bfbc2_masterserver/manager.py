@@ -1,29 +1,25 @@
 import logging
 import os
 
-from fastapi import WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect
 from redis import Redis
 
-from bfbc2_masterserver.database.database import BaseDatabase
-from bfbc2_masterserver.enumerators.message.MessageType import MessageType
-from bfbc2_masterserver.message import LENGTH_LENGTH, LENGTH_OFFSET, Message
+from bfbc2_masterserver.dataclasses.Manager import BaseManager
+from bfbc2_masterserver.enumerators.fesl.MessageType import MessageType
+from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.plasma import Plasma
 from bfbc2_masterserver.theater import Theater
 
 logger = logging.getLogger(__name__)
 
 
-class Manager:
-
-    CLIENTS = {}
-    SERVERS = {}
-
-    database: BaseDatabase
-    redis: Redis
+class Manager(BaseManager):
 
     def __init__(self):
-        mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_STRING")
-        sql_connection_string = os.environ.get("SQL_CONNECTION_STRING")
+        mongodb_connection_string: str | None = os.environ.get(
+            "MONGODB_CONNECTION_STRING"
+        )
+        sql_connection_string: str | None = os.environ.get("SQL_CONNECTION_STRING")
 
         self.redis = Redis(
             host=os.environ.get("REDIS_HOST", "localhost"),
@@ -42,37 +38,31 @@ class Manager:
                 "No database is configured! Check your environment variables."
             )
 
-    async def handle_connection(self, websocket):
+    async def handle_connection(self, websocket: WebSocket) -> None:
         await websocket.accept()
 
-        if websocket.client:
-            host = websocket.client.host
-            port = websocket.client.port
-        else:
-            host = None
-            port = None
+        if not websocket.client:
+            raise ValueError("Client information is missing")
 
-        logger.info(f"{host}:{port} -> Connected")
+        address: tuple[str, int] = (websocket.client.host, websocket.client.port)
+        logger.info(f"{address} -> Connected")
 
         plasma = Plasma(self, websocket)
         theater = Theater(self, plasma, websocket)
 
         try:
             while True:
-                raw_data = await websocket.receive_bytes()
+                raw_data: bytes = await websocket.receive_bytes()
                 message = Message(raw_data=raw_data)
-                messages = []
+                messages: list[bytes] = []
 
-                if message.multiple:
-                    # If the message is multiple, split it into individual messages
+                if message.fragmented:
+                    # If the message is fragmented, split it into individual messages
 
                     while raw_data:
-                        message_length = int.from_bytes(
-                            raw_data[LENGTH_OFFSET : LENGTH_OFFSET + LENGTH_LENGTH],
-                            byteorder="big",
-                        )
-                        messages.append(raw_data[:message_length])
-                        raw_data = raw_data[message_length:]
+                        message = Message(raw_data=raw_data)
+                        messages.append(raw_data[: message.length])
+                        raw_data: bytes = raw_data[message.length :]
                 else:
                     messages.append(raw_data)
 
@@ -95,8 +85,8 @@ class Manager:
         except WebSocketDisconnect:
             pass
         except Exception as e:
-            logger.exception(f"{host}:{port} -> {e}", exc_info=True)
+            logger.exception(f"{address} -> {e}", exc_info=True)
             await websocket.close(code=1002, reason=str(e))
         finally:
             # Clean up
-            plasma.on_disconnect()
+            plasma.on_disconnect(reason="Connection closed", message=None)

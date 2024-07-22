@@ -4,8 +4,8 @@ from typing import Optional
 from bfbc2_masterserver.enumerators.client.ClientLocale import ClientLocale
 from bfbc2_masterserver.enumerators.client.ClientPlatform import ClientPlatform
 from bfbc2_masterserver.enumerators.client.ClientType import ClientType
-from bfbc2_masterserver.messages.plasma.DomainPartition import DomainPartition
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.DomainPartition import DomainPartition
 
 
 class HelloRequest(PlasmaTransaction):

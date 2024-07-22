@@ -1,5 +1,6 @@
 import logging
 
+from bfbc2_masterserver.dataclasses.Handler import BaseTheaterHandler
 from bfbc2_masterserver.messages.theater.commands.Login import (
     LoginRequest,
     LoginResponse,
@@ -8,10 +9,10 @@ from bfbc2_masterserver.messages.theater.commands.Login import (
 logger = logging.getLogger(__name__)
 
 
-def handle_login(ctx, data: LoginRequest):
+def handle_login(ctx: BaseTheaterHandler, data: LoginRequest):
     uid = int(ctx.manager.redis.get(f"persona:{data.LKEY}").decode("utf-8"))
 
-    if not uid or ctx.plasma.userId != uid:
+    if not uid or ctx.plasma.connection.personaId != uid:
         logger.error(f"Persona is not logged in Plasma!")
         return
 

@@ -1,21 +1,24 @@
+from typing import Tuple
+
+from bfbc2_masterserver.dataclasses.plasma.Service import PlasmaService
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
+from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
 from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
-from bfbc2_masterserver.enumerators.Transaction import Transaction
 from bfbc2_masterserver.error import TransactionError
 from bfbc2_masterserver.messages.plasma.assocation.GetAssociations import (
     GetAssociationsRequest,
     GetAssociationsResponse,
 )
-from bfbc2_masterserver.messages.plasma.Owner import Owner
-from bfbc2_masterserver.services.service import Service
+from bfbc2_masterserver.models.plasma.database.Association import Association
+from bfbc2_masterserver.models.plasma.Owner import Owner
 
 
-class AssociationService(Service):
+class AssociationService(PlasmaService):
 
     def __init__(self, plasma) -> None:
         super().__init__(plasma)
 
-        self.resolvers[Transaction.GetAssociations] = (
+        self.resolvers[FESLTransaction.GetAssociations] = (
             self.__handle_get_associations,
             GetAssociationsRequest,
         )
@@ -30,7 +33,7 @@ class AssociationService(Service):
         Returns:
             The resolver function for the transaction.
         """
-        return self.resolvers[Transaction(txn)]
+        return self.resolvers[FESLTransaction(txn)]
 
     def _get_generator(self, txn):
         """
@@ -42,15 +45,19 @@ class AssociationService(Service):
         Returns:
             The generator function for the transaction.
         """
-        return self.generators[Transaction(txn)]
+        return self.generators[FESLTransaction(txn)]
 
-    def __handle_get_associations(self, data: GetAssociationsRequest):
-        assocations = self.database.get_assocation(data.owner.id, data.type)
+    def __handle_get_associations(
+        self, data: GetAssociationsRequest
+    ) -> GetAssociationsResponse | TransactionError:
+        databaseAssocations: Tuple[str, list[Association]] | ErrorCode = (
+            self.database.get_assocation(data.owner.id, data.type)
+        )
 
-        if not assocations or isinstance(assocations, ErrorCode):
+        if not databaseAssocations or isinstance(databaseAssocations, ErrorCode):
             return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
-        persona_name, assocations = assocations
+        persona_name, assocations = databaseAssocations
 
         response = GetAssociationsResponse(
             domainPartition=data.domainPartition,

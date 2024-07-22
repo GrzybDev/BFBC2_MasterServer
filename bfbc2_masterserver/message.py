@@ -35,9 +35,9 @@ class Message:
     type: int
     data: Any = {}
 
-    multiple = False
+    fragmented: bool = False
 
-    __length = 0
+    length: int = 0
 
     def __init__(self, **kwargs):
         """
@@ -62,7 +62,7 @@ class Message:
             self.type = kwargs.get("type", None)
             self.data = kwargs.get("data", {})
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns a string representation of the Message object.
 
@@ -72,7 +72,7 @@ class Message:
             str: A string representation of the Message object.
         """
 
-        length = len(self.compile()) if self.__length == 0 else self.__length
+        length: int = len(self.compile()) if self.length == 0 else self.length
         return f"{self.service} {hex(self.type)} ({length} bytes) {self.data}"
 
     # Method to compile the message into a packet
@@ -89,7 +89,7 @@ class Message:
         """
 
         # Start with the service encoded as bytes
-        temp_packet = self.service.encode()
+        temp_packet: bytes = self.service.encode()
 
         # Add the type as a 4-byte integer
         temp_packet += int.to_bytes(self.type, 4, byteorder="big")
@@ -107,8 +107,8 @@ class Message:
         return temp_packet
 
     # Method to parse raw data into a message
-    def __parse_raw_data(self, raw_data: bytes):
-        received_length = len(raw_data)
+    def __parse_raw_data(self, raw_data: bytes) -> None:
+        received_length: int = len(raw_data)
 
         # If the length of the raw data is less than the length of the header, raise an exception
         if received_length < HEADER_LENGTH:
@@ -127,24 +127,24 @@ class Message:
         )
 
         # Extract the length from the raw data
-        self.__length = int.from_bytes(
+        self.length = int.from_bytes(
             raw_data[LENGTH_OFFSET : LENGTH_OFFSET + LENGTH_LENGTH], byteorder="big"
         )
 
         # If the received length does not match the extracted length, raise an exception
-        if received_length < self.__length:
+        if received_length < self.length:
             raise Exception(
-                f"Packet length does not match (Received: {received_length}, Expected: {self.__length})"
+                f"Packet length does not match (Received: {received_length}, Expected: {self.length})"
             )
-        elif received_length > self.__length:
-            self.multiple = True
+        elif received_length > self.length:
+            self.fragmented = True
             return
 
         # Read the data from the raw data
         self.__read_data(raw_data, HEADER_LENGTH)
 
     # Method to read data from raw data
-    def __read_data(self, raw_data, offset):
+    def __read_data(self, raw_data, offset) -> None:
         # Split the raw data into lines
         transaction_data = raw_data[offset:].decode("utf-8").split("\n")
 
@@ -224,7 +224,7 @@ class Message:
                 self.data[key] = value
 
     # Method to parse a value from a string
-    def __parse_value(self, value: str):
+    def __parse_value(self, value: str) -> int | str:
         # If the value is a digit, return it as an integer
         # Otherwise, return the unquoted value
         if value.isdigit():
@@ -233,13 +233,13 @@ class Message:
             return unquote(value)
 
     # Method to encode a string
-    def __encode_string(self, value):
+    def __encode_string(self, value) -> str:
         # If the value is a datetime object, format it as a string and quote it
         # Otherwise, convert the value to a string and quote it
         if isinstance(value, datetime):
-            temp_value = quote(value.strftime("%b-%d-%Y %H:%M:%S UTC"))
+            temp_value: str = quote(value.strftime("%b-%d-%Y %H:%M:%S UTC"))
         else:
-            temp_value = quote(str(value))
+            temp_value: str = quote(str(value))
 
         # Replace "%20" with a space in the quoted string
         temp_value = temp_value.replace("%20", " ")

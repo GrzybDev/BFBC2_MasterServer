@@ -1,7 +1,7 @@
 from typing import Optional
 
-from bfbc2_masterserver.messages.plasma.Entitlement import Entitlement
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.database.Entitlement import Entitlement
 
 
 class NuGetEntitlementsRequest(PlasmaTransaction):

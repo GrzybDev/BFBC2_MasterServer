@@ -3,6 +3,7 @@ from mongoengine import (
     Document,
     EmbeddedDocument,
     EmbeddedDocumentListField,
+    QuerySet,
     StringField,
 )
 

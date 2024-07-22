@@ -1,4 +1,11 @@
-from mongoengine import BooleanField, DateTimeField, Document, IntField, StringField
+from mongoengine import (
+    BooleanField,
+    DateTimeField,
+    Document,
+    IntField,
+    QuerySet,
+    StringField,
+)
 
 
 class Entitlements(Document):

@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class Transaction(Enum):
+class FESLTransaction(Enum):
     # Plasma (Connect)
     Hello = "Hello"
     MemCheck = "MemCheck"

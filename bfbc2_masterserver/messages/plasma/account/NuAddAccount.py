@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import EmailStr, SecretStr, field_validator, model_validator
 
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
 from bfbc2_masterserver.tools.country_list import COUNTRY_LIST
 
 

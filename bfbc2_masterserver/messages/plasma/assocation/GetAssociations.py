@@ -1,8 +1,8 @@
 from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
-from bfbc2_masterserver.messages.plasma.Association import Association
-from bfbc2_masterserver.messages.plasma.DomainPartition import DomainPartition
-from bfbc2_masterserver.messages.plasma.Owner import Owner
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.database.Association import Association
+from bfbc2_masterserver.models.plasma.DomainPartition import DomainPartition
+from bfbc2_masterserver.models.plasma.Owner import Owner
 
 
 class GetAssociationsRequest(PlasmaTransaction):

@@ -6,6 +6,7 @@ from mongoengine import (
     Document,
     IntField,
     ListField,
+    QuerySet,
     ReferenceField,
     StringField,
 )

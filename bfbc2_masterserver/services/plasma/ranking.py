@@ -1,4 +1,5 @@
-from bfbc2_masterserver.enumerators.Transaction import Transaction
+from bfbc2_masterserver.dataclasses.plasma.Service import PlasmaService
+from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
 from bfbc2_masterserver.messages.plasma.ranking.GetRankedStatsForOwners import (
     GetRankedStatsForOwnersRequest,
     GetRankedStatsForOwnersResponse,
@@ -14,32 +15,36 @@ from bfbc2_masterserver.messages.plasma.ranking.GetStats import (
 from bfbc2_masterserver.messages.plasma.ranking.GetTopNAndStats import (
     GetTopNAndStatsRequest,
     GetTopNAndStatsResponse,
+    Leaderboard,
 )
-from bfbc2_masterserver.messages.Stats import RankedStat, RankedStatReturn
-from bfbc2_masterserver.services.service import Service
+from bfbc2_masterserver.models.plasma.database.Stats import (
+    RankedOwnerStat,
+    RankedStat,
+    Stat,
+)
 
 
-class RankingService(Service):
+class RankingService(PlasmaService):
 
     def __init__(self, plasma) -> None:
         super().__init__(plasma)
 
-        self.resolvers[Transaction.GetStats] = (
+        self.resolvers[FESLTransaction.GetStats] = (
             self.__handle_get_stats,
             GetStatsRequest,
         )
 
-        self.resolvers[Transaction.GetRankedStatsForOwners] = (
+        self.resolvers[FESLTransaction.GetRankedStatsForOwners] = (
             self.__handle_get_ranked_stats_for_owners,
             GetRankedStatsForOwnersRequest,
         )
 
-        self.resolvers[Transaction.GetRankedStats] = (
+        self.resolvers[FESLTransaction.GetRankedStats] = (
             self.__handle_get_ranked_stats,
             GetRankedStatsRequest,
         )
 
-        self.resolvers[Transaction.GetTopNAndStats] = (
+        self.resolvers[FESLTransaction.GetTopNAndStats] = (
             self.__handle_get_top_n_and_stats,
             GetTopNAndStatsRequest,
         )
@@ -54,7 +59,7 @@ class RankingService(Service):
         Returns:
             The resolver function for the transaction.
         """
-        return self.resolvers[Transaction(txn)]
+        return self.resolvers[FESLTransaction(txn)]
 
     def _get_generator(self, txn):
         """
@@ -66,22 +71,26 @@ class RankingService(Service):
         Returns:
             The generator function for the transaction.
         """
-        return self.generators[Transaction(txn)]
+        return self.generators[FESLTransaction(txn)]
 
-    def __handle_get_stats(self, data: GetStatsRequest):
-        stats = self.database.get_stats(self.plasma.userId, data.keys)
+    def __handle_get_stats(self, data: GetStatsRequest) -> GetStatsResponse:
+        stats: list[Stat] = self.database.get_stats(
+            self.plasma.connection.personaId, data.keys
+        )
         return GetStatsResponse(stats=stats)
 
     def __handle_get_ranked_stats_for_owners(
         self, data: GetRankedStatsForOwnersRequest
-    ):
-        stats: list[RankedStatReturn] = []
+    ) -> GetRankedStatsForOwnersResponse:
+        stats: list[RankedOwnerStat] = []
 
         for owner in data.owners:
-            ownerStats = self.database.get_ranked_stats(owner.ownerId, data.keys)
+            ownerStats: list[RankedStat] = self.database.get_ranked_stats(
+                owner.ownerId, data.keys
+            )
 
             stats.append(
-                RankedStatReturn(
+                RankedOwnerStat(
                     rankedStats=ownerStats,
                     ownerId=owner.ownerId,
                     ownerType=owner.ownerType,
@@ -90,10 +99,16 @@ class RankingService(Service):
 
         return GetRankedStatsForOwnersResponse(rankedStats=stats)
 
-    def __handle_get_ranked_stats(self, data: GetRankedStatsRequest):
-        stats = self.database.get_ranked_stats(self.plasma.userId, data.keys)
+    def __handle_get_ranked_stats(
+        self, data: GetRankedStatsRequest
+    ) -> GetRankedStatsResponse:
+        stats: list[RankedStat] = self.database.get_ranked_stats(
+            self.plasma.connection.personaId, data.keys
+        )
         return GetRankedStatsResponse(stats=stats)
 
-    def __handle_get_top_n_and_stats(self, data: GetTopNAndStatsRequest):
-        leaderboard = self.database.get_leaderboard(data.keys)
+    def __handle_get_top_n_and_stats(
+        self, data: GetTopNAndStatsRequest
+    ) -> GetTopNAndStatsResponse:
+        leaderboard: list[Leaderboard] = self.database.get_leaderboard(data.keys)
         return GetTopNAndStatsResponse(stats=leaderboard)

@@ -1,12 +1,6 @@
-from enum import Enum
-
-from bfbc2_masterserver.enumerators.RecordName import RecordName
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
-
-
-class Record(PlasmaTransaction):
-    key: int
-    value: str
+from bfbc2_masterserver.enumerators.plasma.RecordName import RecordName
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.database.Record import Record
 
 
 class GetRecordRequest(PlasmaTransaction):

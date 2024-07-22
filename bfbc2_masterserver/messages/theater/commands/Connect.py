@@ -1,9 +1,9 @@
 from bfbc2_masterserver.enumerators.client.ClientLocale import ClientLocale
 from bfbc2_masterserver.enumerators.client.ClientPlatform import ClientPlatform
-from bfbc2_masterserver.messages.theater.TheaterMessage import TheaterMessage
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
-class ConnectRequest(TheaterMessage):
+class ConnectRequest(TheaterTransaction):
     PROT: int
     PROD: str
     VERS: str
@@ -12,7 +12,7 @@ class ConnectRequest(TheaterMessage):
     SDKVERSION: str
 
 
-class ConnectResponse(TheaterMessage):
+class ConnectResponse(TheaterTransaction):
     TIME: int
     activityTimeoutSecs: int
     PROT: int

@@ -1,10 +1,10 @@
 from pydantic import Field, IPvAnyAddress, SecretStr
 
-from bfbc2_masterserver.messages.Game import GameServer
-from bfbc2_masterserver.messages.theater.TheaterMessage import TheaterMessage
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
+from bfbc2_masterserver.models.plasma.database.Game import GameServer
 
 
-class CreateGameRequest(TheaterMessage):
+class CreateGameRequest(TheaterTransaction):
     LID: int
     RESERVE_HOST: bool = Field(alias="RESERVE-HOST")
     NAME: str
@@ -29,5 +29,5 @@ class CreateGameRequest(TheaterMessage):
     RT: str
 
 
-class CreateGameResponse(TheaterMessage, GameServer):
+class CreateGameResponse(TheaterTransaction, GameServer):
     pass

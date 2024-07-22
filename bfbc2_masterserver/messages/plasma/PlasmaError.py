@@ -1,15 +1,8 @@
 from typing import Optional
 
-from pydantic import BaseModel
-
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
-from bfbc2_masterserver.messages.plasma.PlasmaTransaction import PlasmaTransaction
-
-
-class Error(BaseModel):
-    fieldName: str
-    fieldError: int
-    value: Optional[str] = None
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.plasma.message.Error import Error
 
 
 class PlasmaError(PlasmaTransaction):
