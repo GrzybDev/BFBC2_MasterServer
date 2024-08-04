@@ -22,6 +22,7 @@ from bfbc2_masterserver.services.plasma.account import AccountService
 from bfbc2_masterserver.services.plasma.association import AssociationService
 from bfbc2_masterserver.services.plasma.connect import ConnectService
 from bfbc2_masterserver.services.plasma.message import ExtensibleMessageService
+from bfbc2_masterserver.services.plasma.playnow import PlayNowService
 from bfbc2_masterserver.services.plasma.presence import PresenceService
 from bfbc2_masterserver.services.plasma.ranking import RankingService
 from bfbc2_masterserver.services.plasma.record import RecordService
@@ -45,6 +46,7 @@ class Plasma(BaseHandler):
         self.services[FESLService.AccountService] = AccountService(self)
         self.services[FESLService.AssociationService] = AssociationService(self)
         self.services[FESLService.MessageService] = ExtensibleMessageService(self)
+        self.services[FESLService.PlayNowService] = PlayNowService(self)
         self.services[FESLService.PresenceService] = PresenceService(self)
         self.services[FESLService.RankingService] = RankingService(self)
         self.services[FESLService.RecordService] = RecordService(self)

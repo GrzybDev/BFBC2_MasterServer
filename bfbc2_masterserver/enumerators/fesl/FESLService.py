@@ -6,6 +6,7 @@ class FESLService(Enum):
     AccountService = "acct"
     AssociationService = "asso"
     MessageService = "xmsg"
+    PlayNowService = "pnow"
     PresenceService = "pres"
     RankingService = "rank"
     RecordService = "recp"

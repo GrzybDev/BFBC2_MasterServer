@@ -32,6 +32,10 @@ class FESLTransaction(Enum):
     ModifySettings = "ModifySettings"
     GetMessages = "GetMessages"
 
+    # Plasma (PlayNow)
+    Start = "Start"
+    Status = "Status"
+
     # Plasma (Presence)
     SetPresenceStatus = "SetPresenceStatus"
 
