@@ -23,7 +23,11 @@ from bfbc2_masterserver.messages.theater.commands.GetGameList import GetGameList
 from bfbc2_masterserver.messages.theater.commands.GetLobbyList import (
     GetLobbyListRequest,
 )
+from bfbc2_masterserver.messages.theater.commands.LeaveGame import LeaveGameRequest
 from bfbc2_masterserver.messages.theater.commands.Login import LoginRequest
+from bfbc2_masterserver.messages.theater.commands.PlayerExited import (
+    PlayerExitedRequest,
+)
 from bfbc2_masterserver.messages.theater.commands.UpdateBracket import (
     UpdateBracketRequest,
 )
@@ -41,7 +45,9 @@ from bfbc2_masterserver.services.theater.enter_game_response import (
 from bfbc2_masterserver.services.theater.get_game_details import handle_get_game_details
 from bfbc2_masterserver.services.theater.get_game_list import handle_get_game_list
 from bfbc2_masterserver.services.theater.get_lobby_list import handle_get_lobby_list
+from bfbc2_masterserver.services.theater.leave_game import handle_leave_game
 from bfbc2_masterserver.services.theater.login import handle_login
+from bfbc2_masterserver.services.theater.player_exited import handle_player_exited
 from bfbc2_masterserver.services.theater.update_bracket import handle_update_bracket
 from bfbc2_masterserver.services.theater.update_game import handle_update_game
 from bfbc2_masterserver.services.theater.update_game_details import (
@@ -106,6 +112,11 @@ class Theater(BaseTheaterHandler):
             EnterGameHostResponse,
         )
 
+        self.handlers[TheaterCommand.LeaveGame] = handle_leave_game, LeaveGameRequest
+        self.handlers[TheaterCommand.PlayerExited] = (
+            handle_player_exited,
+            PlayerExitedRequest,
+        )
     async def handle_transaction(self, message: Message) -> None:
         try:
             command = TheaterCommand(message.service)

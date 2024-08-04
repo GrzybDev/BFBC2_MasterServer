@@ -18,3 +18,5 @@ class TheaterCommand(Enum):
     EnterGameHostRequest = "EGRQ"
     EnterGameNotice = "EGEG"
     EnterGameHostResponse = "EGRS"
+    LeaveGame = "ECNL"
+    PlayerExited = "PLVT"
