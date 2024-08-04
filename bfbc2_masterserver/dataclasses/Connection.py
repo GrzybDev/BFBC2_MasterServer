@@ -12,3 +12,5 @@ class BaseConnection:
     accountLoginKey: str
     personaId: int
     personaLoginKey: str
+    internalIp: str
+    internalPort: int

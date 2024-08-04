@@ -52,7 +52,16 @@ class Manager(BaseManager):
 
         try:
             while True:
-                raw_data: bytes = await websocket.receive_bytes()
+                raw_data = await websocket.receive_bytes()
+
+                if raw_data.startswith(b"META"):
+                    # META messages are workaround for getting the client's internal IP and port
+                    remote_info = raw_data.decode("utf-8").split("|")
+                    ip, port = remote_info[1], int(remote_info[2])
+                    plasma.connection.internalIp = ip
+                    plasma.connection.internalPort = port
+                    continue
+
                 message = Message(raw_data=raw_data)
                 messages: list[bytes] = []
 
