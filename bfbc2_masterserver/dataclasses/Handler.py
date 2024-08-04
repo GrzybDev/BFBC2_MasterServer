@@ -8,8 +8,10 @@ from bfbc2_masterserver.dataclasses.Connection import BaseConnection
 from bfbc2_masterserver.dataclasses.Manager import BaseManager
 from bfbc2_masterserver.enumerators.fesl.FESLService import FESLService
 from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
+from bfbc2_masterserver.enumerators.theater.TheaterCommand import TheaterCommand
 from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
+from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
 class BaseHandler:
@@ -55,3 +57,9 @@ class BaseTheaterHandler(BaseHandler):
     updateInProgress: bool = False
 
     plasma: BaseHandler
+
+    @abstractmethod
+    def start_theater_transaction(
+        self, service: TheaterCommand, data: TheaterTransaction
+    ) -> None:
+        raise NotImplementedError()
