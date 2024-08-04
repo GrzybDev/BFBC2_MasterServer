@@ -26,6 +26,9 @@ from bfbc2_masterserver.messages.theater.commands.CreateGame import CreateGameRe
 from bfbc2_masterserver.messages.theater.commands.GetGameList import GameData
 from bfbc2_masterserver.messages.theater.commands.GetLobbyList import Lobby
 from bfbc2_masterserver.messages.theater.commands.UpdateGame import UpdateGameRequest
+from bfbc2_masterserver.messages.theater.commands.UpdateGameDetails import (
+    UpdateGameDetailsRequest,
+)
 from bfbc2_masterserver.models.plasma.database.Account import Account
 from bfbc2_masterserver.models.plasma.database.Association import Association
 from bfbc2_masterserver.models.plasma.database.Entitlement import Entitlement
@@ -582,14 +585,14 @@ class MongoDB(BaseDatabase):
                         "MP": game.maxPlayers,
                         "F": 0,  # Is Player Favorite
                         "NF": 0,  # Favorite Player Count
-                        "HU": 1,
-                        "HN": "bfbc2.server.p",
+                        "HU": game.owner.id,
+                        "HN": game.owner.nuid,
                         "I": game.addrIp,
                         "P": game.addrPort,
                         "J": game.joinMode,
                         "PL": game.platform,
-                        "PW": int(0),
-                        "V": "2.0",
+                        "PW": False,
+                        "V": game.clientVersion,
                         "TYPE": game.gameType,
                         "B-numObservers": game.numObservers,
                         "B-maxObservers": game.maxObservers,
@@ -597,11 +600,11 @@ class MongoDB(BaseDatabase):
                         "B-U-region": game.gameRegion,
                         "B-U-level": game.gameLevel,
                         "B-U-elo": game.gameElo,
-                        "B-U-Softcore": int(game.serverSoftcore),
-                        "B-U-Hardcore": int(game.serverHardcore),
-                        "B-U-EA": int(game.serverEA),
-                        "B-U-HasPassword": int(game.serverHasPassword),
-                        "B-U-public": int(game.gamePublic),
+                        "B-U-Softcore": game.serverSoftcore,
+                        "B-U-Hardcore": game.serverHardcore,
+                        "B-U-EA": game.serverEA,
+                        "B-U-HasPassword": game.serverHasPassword,
+                        "B-U-public": game.gamePublic,
                         "B-U-QueueLength": game.queueLength,
                         "B-U-gameMod": game.gameMod,
                         "B-U-gamemode": game.gameMode,
@@ -609,19 +612,20 @@ class MongoDB(BaseDatabase):
                         "B-U-Provider": game.providerId,
                         "B-U-Time": game.gameTime,
                         "B-U-hash": game.gameHash,
-                        "B-U-Punkbuster": int(game.serverPunkbuster),
-                        "B-U-PunkBusterVersion": None,
+                        "B-U-Punkbuster": game.serverPunkbuster,
+                        "B-U-PunkBusterVersion": game.punkbusterVersion,
                     }
                 )
             )
 
         return games
 
-    def create_game(self, request: CreateGameRequest) -> GameServer:
+    def create_game(self, ownerId: int, request: CreateGameRequest) -> GameServer:
         # If there's a game with UGID, just return that game if the secret matches
         existingGame = Games.objects(ugid=request.UGID).first()  # type: ignore
 
         if existingGame:
+            print(existingGame.secret, request.SECRET.get_secret_value())
             if existingGame.secret == request.SECRET.get_secret_value():
                 # Refresh ekey
                 existingGame.ekey = secrets.token_urlsafe(16)
@@ -632,21 +636,62 @@ class MongoDB(BaseDatabase):
                     {
                         "LID": existingGame.lid,
                         "GID": existingGame.id,
-                        "MAX-PLAYERS": existingGame.maxPlayers,
-                        "EKEY": existingGame.ekey,
-                        "UGID": existingGame.ugid,
-                        "JOIN": existingGame.joinMode,
-                        "SECRET": existingGame.secret,
-                        "J": existingGame.joinMode,
+                        "serverName": existingGame.name,
+                        "addrIp": existingGame.addrIp,
+                        "addrPort": existingGame.addrPort,
+                        "joiningPlayers": existingGame.joiningPlayers,
+                        "queuedPlayers": existingGame.queuedPlayers,
+                        "activePlayers": existingGame.activePlayers,
+                        "maxPlayers": existingGame.maxPlayers,
+                        "platform": existingGame.platform,
+                        "joinMode": existingGame.joinMode,
+                        "gameType": existingGame.gameType,
+                        "serverSoftcore": existingGame.serverSoftcore,
+                        "serverHardcore": existingGame.serverHardcore,
+                        "serverHasPassword": existingGame.serverHasPassword,
+                        "serverPunkbuster": existingGame.serverPunkbuster,
+                        "serverEA": existingGame.serverEA,
+                        "serverVersion": existingGame.serverVersion,
+                        "clientVersion": existingGame.clientVersion,
+                        "gameLevel": existingGame.gameLevel,
+                        "gameMod": existingGame.gameMod,
+                        "gameMode": existingGame.gameMode,
+                        "gameSGUID": existingGame.gameSGUID,
+                        "gameTime": existingGame.gameTime,
+                        "gameHash": existingGame.gameHash,
+                        "gameRegion": existingGame.gameRegion,
+                        "gamePublic": existingGame.gamePublic,
+                        "gameElo": existingGame.gameElo,
+                        "gameAutoBalance": existingGame.gameAutoBalance,
+                        "gameBannerUrl": existingGame.gameBannerUrl,
+                        "gameCrosshair": existingGame.gameCrosshair,
+                        "gameFriendlyFire": existingGame.gameFriendlyFire,
+                        "gameKillCam": existingGame.gameKillCam,
+                        "gameMiniMap": existingGame.gameMiniMap,
+                        "gameMiniMapSpotting": existingGame.gameMiniMapSpotting,
+                        "gameThirdPersonVehicleCameras": existingGame.gameThirdPersonVehicleCameras,
+                        "gameThreeDSpotting": existingGame.gameThreeDSpotting,
+                        "numObservers": existingGame.numObservers,
+                        "maxObservers": existingGame.maxObservers,
+                        "providerId": existingGame.providerId,
+                        "queueLength": existingGame.queueLength,
+                        "punkbusterVersion": existingGame.punkbusterVersion,
+                        "ugid": existingGame.ugid,
+                        "ekey": existingGame.ekey,
+                        "secret": existingGame.secret,
+                        "playerData": existingGame.playerData,
+                        "serverDescriptions": existingGame.serverDescriptions,
                     }
                 )
 
         # Create a new game
         seq_game = self.redis.incr("seq:game")
+        owner = Accounts.objects(id=ownerId).first()
 
         game = Games(
             id=seq_game,
             lid=1,
+            owner=owner,
             name=request.NAME.lstrip('"').rstrip('"'),
             addrIp=str(request.INT_IP),
             addrPort=request.INT_PORT,
@@ -664,74 +709,206 @@ class MongoDB(BaseDatabase):
             joinMode=request.JOIN,
             ugid=request.UGID,
             ekey=secrets.token_urlsafe(16),
-            secret=request.SECRET.get_secret_value(),
+            secret=secrets.token_urlsafe(64),
         ).save()
 
         return GameServer.model_validate(
             {
                 "LID": game.lid,
                 "GID": game.id,
-                "MAX-PLAYERS": game.maxPlayers,
-                "EKEY": game.ekey,
-                "UGID": game.ugid,
-                "JOIN": game.joinMode,
-                "SECRET": game.secret,
-                "J": game.joinMode,
+                "serverName": game.name,
+                "addrIp": game.addrIp,
+                "addrPort": game.addrPort,
+                "joiningPlayers": game.joiningPlayers,
+                "queuedPlayers": game.queuedPlayers,
+                "activePlayers": game.activePlayers,
+                "maxPlayers": game.maxPlayers,
+                "platform": game.platform,
+                "joinMode": game.joinMode,
+                "gameType": game.gameType,
+                "serverSoftcore": game.serverSoftcore,
+                "serverHardcore": game.serverHardcore,
+                "serverHasPassword": game.serverHasPassword,
+                "serverPunkbuster": game.serverPunkbuster,
+                "serverEA": game.serverEA,
+                "serverVersion": game.serverVersion,
+                "clientVersion": game.clientVersion,
+                "gameLevel": game.gameLevel,
+                "gameMod": game.gameMod,
+                "gameMode": game.gameMode,
+                "gameSGUID": game.gameSGUID,
+                "gameTime": game.gameTime,
+                "gameHash": game.gameHash,
+                "gameRegion": game.gameRegion,
+                "gamePublic": game.gamePublic,
+                "gameElo": game.gameElo,
+                "gameAutoBalance": game.gameAutoBalance,
+                "gameBannerUrl": game.gameBannerUrl,
+                "gameCrosshair": game.gameCrosshair,
+                "gameFriendlyFire": game.gameFriendlyFire,
+                "gameKillCam": game.gameKillCam,
+                "gameMiniMap": game.gameMiniMap,
+                "gameMiniMapSpotting": game.gameMiniMapSpotting,
+                "gameThirdPersonVehicleCameras": game.gameThirdPersonVehicleCameras,
+                "gameThreeDSpotting": game.gameThreeDSpotting,
+                "numObservers": game.numObservers,
+                "maxObservers": game.maxObservers,
+                "providerId": game.providerId,
+                "queueLength": game.queueLength,
+                "punkbusterVersion": game.punkbusterVersion,
+                "ugid": game.ugid,
+                "ekey": game.ekey,
+                "secret": game.secret,
+                "playerData": game.playerData,
+                "serverDescriptions": game.serverDescriptions,
             }
         )
 
-    def update_game(self, request: UpdateGameRequest) -> bool:
-        mapping = {
-            "N": "name",
-            "AP": "activePlayers",
-            "JP": "joiningPlayers",
-            "QP": "queuedPlayers",
-            "MP": "maxPlayers",
-            "F": "0",
-            "NF": "0",
-            "HU": "numObservers",
-            "HN": "name",
-            "I": "addrIp",
-            "P": "addrPort",
-            "J": "joinMode",
-            "PL": "platform",
-            "PW": "serverHasPassword",
-            "V": "serverVersion",
-            "TYPE": "gameType",
-            "B-numObservers": "numObservers",
-            "B-maxObservers": "maxObservers",
-            "B-version": "serverVersion",
-            "B-U-region": "gameRegion",
-            "B-U-level": "gameLevel",
-            "B-U-elo": "gameElo",
-            "B-U-Softcore": "serverSoftcore",
-            "B-U-Hardcore": "serverHardcore",
-            "B-U-EA": "serverEA",
-            "B-U-HasPassword": "serverHasPassword",
-            "B-U-public": "gamePublic",
-            "B-U-QueueLength": "queueLength",
-            "B-U-gameMod": "gameMod",
-            "B-U-gamemode": "gameMode",
-            "B-U-sguid": "gameSGUID",
-            "B-U-Provider": "providerId",
-            "B-U-Time": "gameTime",
-            "B-U-hash": "gameHash",
-            "B-U-Punkbuster": "serverPunkbuster",
-            "B-U-PunkBusterVersion": "punkbusterVersion",
-        }
-
+    def update_game(
+        self, request: UpdateGameRequest | UpdateGameDetailsRequest
+    ) -> bool:
         gid = request.GID
-
         game = Games.objects(id=gid).first()
 
         if not game:
             return False
 
-        updated_data = request.model_dump()
+        data_to_update = request.model_dump(exclude_none=True)
 
-        for key, value in updated_data.items():
-            setattr(game, mapping.get(key, key), value)
+        for key, value in data_to_update.items():
+            setattr(game, key, value)
 
         game.save()
 
         return True
+
+    def disable_game(self, gid: int) -> bool:
+        game = Games.objects(id=gid).first()
+
+        if not game:
+            return False
+
+        game.joinMode = "C"
+        game.activePlayers = 0
+        game.joiningPlayers = 0
+        game.queuedPlayers = 0
+        game.save()
+
+        return True
+
+    def find_game(self, prefGamemode, prefLevel) -> GameServer | None:
+        # Find a game with the given gamemode and level
+        game = Games.objects(gameType=prefGamemode, gameLevel=prefLevel).first()
+
+        if not game:
+            return None
+
+        return GameServer.model_validate(
+            {
+                "LID": game.lid,
+                "GID": game.id,
+                "serverName": game.name,
+                "addrIp": game.addrIp,
+                "addrPort": game.addrPort,
+                "joiningPlayers": game.joiningPlayers,
+                "queuedPlayers": game.queuedPlayers,
+                "activePlayers": game.activePlayers,
+                "maxPlayers": game.maxPlayers,
+                "platform": game.platform,
+                "joinMode": game.joinMode,
+                "gameType": game.gameType,
+                "serverSoftcore": game.serverSoftcore,
+                "serverHardcore": game.serverHardcore,
+                "serverHasPassword": game.serverHasPassword,
+                "serverPunkbuster": game.serverPunkbuster,
+                "serverEA": game.serverEA,
+                "serverVersion": game.serverVersion,
+                "clientVersion": game.clientVersion,
+                "gameLevel": game.gameLevel,
+                "gameMod": game.gameMod,
+                "gameMode": game.gameMode,
+                "gameSGUID": game.gameSGUID,
+                "gameTime": game.gameTime,
+                "gameHash": game.gameHash,
+                "gameRegion": game.gameRegion,
+                "gamePublic": game.gamePublic,
+                "gameElo": game.gameElo,
+                "gameAutoBalance": game.gameAutoBalance,
+                "gameBannerUrl": game.gameBannerUrl,
+                "gameCrosshair": game.gameCrosshair,
+                "gameFriendlyFire": game.gameFriendlyFire,
+                "gameKillCam": game.gameKillCam,
+                "gameMiniMap": game.gameMiniMap,
+                "gameMiniMapSpotting": game.gameMiniMapSpotting,
+                "gameThirdPersonVehicleCameras": game.gameThirdPersonVehicleCameras,
+                "gameThreeDSpotting": game.gameThreeDSpotting,
+                "numObservers": game.numObservers,
+                "maxObservers": game.maxObservers,
+                "providerId": game.providerId,
+                "queueLength": game.queueLength,
+                "punkbusterVersion": game.punkbusterVersion,
+                "ugid": game.ugid,
+                "ekey": game.ekey,
+                "secret": game.secret,
+                "playerData": game.playerData,
+                "serverDescriptions": game.serverDescriptions,
+            }
+        )
+
+    def get_game(self, lid, gid) -> GameServer | None:
+        game = Games.objects(lid=lid, id=gid).first()
+
+        if not game:
+            return None
+
+        return GameServer.model_validate(
+            {
+                "LID": game.lid,
+                "GID": game.id,
+                "serverName": game.name,
+                "addrIp": game.addrIp,
+                "addrPort": game.addrPort,
+                "joiningPlayers": game.joiningPlayers,
+                "queuedPlayers": game.queuedPlayers,
+                "activePlayers": game.activePlayers,
+                "maxPlayers": game.maxPlayers,
+                "platform": game.platform,
+                "joinMode": game.joinMode,
+                "gameType": game.gameType,
+                "serverSoftcore": game.serverSoftcore,
+                "serverHardcore": game.serverHardcore,
+                "serverHasPassword": game.serverHasPassword,
+                "serverPunkbuster": game.serverPunkbuster,
+                "serverEA": game.serverEA,
+                "serverVersion": game.serverVersion,
+                "clientVersion": game.clientVersion,
+                "gameLevel": game.gameLevel,
+                "gameMod": game.gameMod,
+                "gameMode": game.gameMode,
+                "gameSGUID": game.gameSGUID,
+                "gameTime": game.gameTime,
+                "gameHash": game.gameHash,
+                "gameRegion": game.gameRegion,
+                "gamePublic": game.gamePublic,
+                "gameElo": game.gameElo,
+                "gameAutoBalance": game.gameAutoBalance,
+                "gameBannerUrl": game.gameBannerUrl,
+                "gameCrosshair": game.gameCrosshair,
+                "gameFriendlyFire": game.gameFriendlyFire,
+                "gameKillCam": game.gameKillCam,
+                "gameMiniMap": game.gameMiniMap,
+                "gameMiniMapSpotting": game.gameMiniMapSpotting,
+                "gameThirdPersonVehicleCameras": game.gameThirdPersonVehicleCameras,
+                "gameThreeDSpotting": game.gameThreeDSpotting,
+                "numObservers": game.numObservers,
+                "maxObservers": game.maxObservers,
+                "providerId": game.providerId,
+                "queueLength": game.queueLength,
+                "punkbusterVersion": game.punkbusterVersion,
+                "ugid": game.ugid,
+                "ekey": game.ekey,
+                "secret": game.secret,
+                "playerData": game.playerData,
+                "serverDescriptions": game.serverDescriptions,
+            }
+        )

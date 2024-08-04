@@ -11,6 +11,9 @@ from bfbc2_masterserver.messages.theater.commands.CreateGame import CreateGameRe
 from bfbc2_masterserver.messages.theater.commands.GetGameList import GameData
 from bfbc2_masterserver.messages.theater.commands.GetLobbyList import Lobby
 from bfbc2_masterserver.messages.theater.commands.UpdateGame import UpdateGameRequest
+from bfbc2_masterserver.messages.theater.commands.UpdateGameDetails import (
+    UpdateGameDetailsRequest,
+)
 from bfbc2_masterserver.models.plasma.database.Account import Account
 from bfbc2_masterserver.models.plasma.database.Association import Association
 from bfbc2_masterserver.models.plasma.database.Entitlement import Entitlement
@@ -204,9 +207,23 @@ class BaseDatabase(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def create_game(self, request: CreateGameRequest) -> GameServer:
+    def create_game(self, ownerId: int, request: CreateGameRequest) -> GameServer:
         raise NotImplementedError()
 
     @abstractmethod
-    def update_game(self, request: UpdateGameRequest) -> bool:
+    def update_game(
+        self, request: UpdateGameRequest | UpdateGameDetailsRequest
+    ) -> bool:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def disable_game(self, gid: int) -> bool:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def find_game(self, prefGamemode, prefLevel) -> GameServer | None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_game(self, lid, gid) -> GameServer | None:
         raise NotImplementedError()
