@@ -10,7 +10,12 @@ from bfbc2_masterserver.models.plasma.database.Game import GameServer
 
 def handle_create_game(ctx: BaseTheaterHandler, data: CreateGameRequest):
     database: BaseDatabase = ctx.manager.database
-    gameData: GameServer = database.create_game(data)
+    gameData: GameServer = database.create_game(ctx.plasma.connection.accountId, data)
+
+    ctx.manager.SERVERS[gameData.GID] = Client()
+    ctx.manager.SERVERS[gameData.GID].plasma = ctx.plasma
+    ctx.manager.SERVERS[gameData.GID].theater = ctx
+    ctx.plasma.connection.gameId = gameData.GID
 
     yield CreateGameResponse.model_validate(
         {

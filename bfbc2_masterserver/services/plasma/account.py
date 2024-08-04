@@ -346,8 +346,6 @@ class AccountService(PlasmaService):
 
         if client_type == ClientType.Client:
             self.plasma.manager.CLIENTS[account.id] = client
-        else:
-            self.plasma.manager.SERVERS[account.id] = client
 
         response = NuLoginResponse(
             nuid=data.nuid,
@@ -412,6 +410,7 @@ class AccountService(PlasmaService):
 
         self.plasma.connection.personaId = persona.id
         self.plasma.connection.personaLoginKey = login_key
+        self.plasma.connection.personaName = persona.name
 
         self.redis.set(f"profile:{persona.id}", login_key)
         self.redis.set(f"persona:{login_key}", persona.id)

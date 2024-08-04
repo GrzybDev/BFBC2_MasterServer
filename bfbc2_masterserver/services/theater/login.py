@@ -1,6 +1,7 @@
 import logging
 
 from bfbc2_masterserver.dataclasses.Handler import BaseTheaterHandler
+from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.messages.theater.commands.Login import (
     LoginRequest,
     LoginResponse,
@@ -19,6 +20,8 @@ def handle_login(ctx: BaseTheaterHandler, data: LoginRequest):
     database = ctx.manager.database
     persona = database.get_persona_by_id(uid)
 
-    response = LoginResponse(NAME=persona.name)
+    if ctx.plasma.connection.type == ClientType.Client:
+        ctx.manager.CLIENTS[ctx.plasma.connection.accountId].theater = ctx
 
+    response = LoginResponse(NAME=persona.name)
     yield response

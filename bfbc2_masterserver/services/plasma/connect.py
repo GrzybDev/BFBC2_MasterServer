@@ -137,6 +137,7 @@ class ConnectService(PlasmaService):
         self.plasma.connection = BaseConnection()
         self.plasma.connection.clientName = data.clientString
         self.plasma.connection.locale = data.locale
+        self.plasma.connection.platform = data.clientPlatform
         self.plasma.connection.type = data.clientType
         self.plasma.connection.fragmentSize = data.fragmentSize
 
@@ -163,8 +164,6 @@ class ConnectService(PlasmaService):
 
         # Start the MemCheck
         self.__make_memcheck()
-        self.plasma.connection.isInitialized = True
-
         return response
 
     def __create_memcheck(self, data: dict) -> MemCheckRequest:
