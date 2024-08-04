@@ -5,10 +5,14 @@ from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
 from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
 from bfbc2_masterserver.error import TransactionError
+from bfbc2_masterserver.messages.plasma.assocation.AddAssocations import (
+    AddAssociationsRequest,
+)
 from bfbc2_masterserver.messages.plasma.assocation.GetAssociations import (
     GetAssociationsRequest,
     GetAssociationsResponse,
 )
+from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
 from bfbc2_masterserver.models.plasma.database.Association import Association
 from bfbc2_masterserver.models.plasma.Owner import Owner
 
@@ -21,6 +25,11 @@ class AssociationService(PlasmaService):
         self.resolvers[FESLTransaction.GetAssociations] = (
             self.__handle_get_associations,
             GetAssociationsRequest,
+        )
+
+        self.resolvers[FESLTransaction.AddAssociations] = (
+            self.__handle_add_associations,
+            AddAssociationsRequest,
         )
 
     def _get_resolver(self, txn):
@@ -68,3 +77,7 @@ class AssociationService(PlasmaService):
         )
 
         return response
+
+    def __handle_add_associations(self, data: AddAssociationsRequest):
+        # TODO
+        return PlasmaTransaction()

@@ -27,6 +27,7 @@ class FESLTransaction(Enum):
 
     # Plasma (Assocation)
     GetAssociations = "GetAssociations"
+    AddAssociations = "AddAssociations"
 
     # Plasma (Extensible Message)
     ModifySettings = "ModifySettings"
