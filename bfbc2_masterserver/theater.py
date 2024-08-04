@@ -138,6 +138,9 @@ class Theater(BaseTheaterHandler):
 
         if not self.isInitialized and command == TheaterCommand.Connect:
             self.transactionID = tid
+        elif self.isInitialized:
+            if self.updateInProgress and command == TheaterCommand.UpdateBracket:
+                self.transactionID += 1
         elif not self.isInitialized:
             raise ValueError("Theater is not initialized")
 
@@ -163,17 +166,16 @@ class Theater(BaseTheaterHandler):
                     message.service = command.value
 
                 message.type = MessageType.TheaterResponse.value
-
                 message.data = response
-                message.data.TID = (
-                    self.transactionID if command != TheaterCommand.Echo else tid
-                )
+
+                if command != TheaterCommand.Echo:
+                    message.data.TID = self.transactionID
+                else:
+                    message.data.TID = tid
 
                 await self.__send(message)
 
-                logger.debug(f"{self.get_client_address()} <- {message}")
-
-            if command != TheaterCommand.Echo:
+            if not self.updateInProgress and command != TheaterCommand.Echo:
                 self.transactionID += 1
 
     async def __send(self, message: Message) -> None:
