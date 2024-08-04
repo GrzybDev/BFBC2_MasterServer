@@ -182,6 +182,8 @@ class Theater(BaseTheaterHandler):
         # Compile the response into bytes
         response_bytes = message.compile()
         await self.websocket.send_bytes(response_bytes)
+        logger.debug(f"{self.get_client_address()} <- {message}")
+
     def start_theater_transaction(self, service: TheaterCommand, data) -> None:
         message = Message()
         message.service = service.value
