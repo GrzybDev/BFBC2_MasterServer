@@ -14,3 +14,7 @@ class TheaterCommand(Enum):
     UpdateBracket = "UBRA"
     UpdateGame = "UGAM"
     UpdateGameDetails = "UGDE"
+    EnterGameRequest = "EGAM"
+    EnterGameHostRequest = "EGRQ"
+    EnterGameNotice = "EGEG"
+    EnterGameHostResponse = "EGRS"

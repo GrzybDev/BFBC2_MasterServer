@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import WebSocket
@@ -11,6 +12,10 @@ from bfbc2_masterserver.message import Message
 from bfbc2_masterserver.messages.theater.commands.Connect import ConnectRequest
 from bfbc2_masterserver.messages.theater.commands.CreateGame import CreateGameRequest
 from bfbc2_masterserver.messages.theater.commands.Echo import EchoRequest
+from bfbc2_masterserver.messages.theater.commands.EnterGame import EnterGameRequest
+from bfbc2_masterserver.messages.theater.commands.EnterGameResponse import (
+    EnterGameHostResponse,
+)
 from bfbc2_masterserver.messages.theater.commands.GetGameDetails import (
     GetGameDetailsRequest,
 )
@@ -29,6 +34,10 @@ from bfbc2_masterserver.messages.theater.commands.UpdateGameDetails import (
 from bfbc2_masterserver.services.theater.connect import handle_connect
 from bfbc2_masterserver.services.theater.create_game import handle_create_game
 from bfbc2_masterserver.services.theater.echo import handle_echo
+from bfbc2_masterserver.services.theater.enter_game import handle_enter_game
+from bfbc2_masterserver.services.theater.enter_game_response import (
+    handle_enter_game_response,
+)
 from bfbc2_masterserver.services.theater.get_game_details import handle_get_game_details
 from bfbc2_masterserver.services.theater.get_game_list import handle_get_game_list
 from bfbc2_masterserver.services.theater.get_lobby_list import handle_get_lobby_list
@@ -87,6 +96,16 @@ class Theater(BaseTheaterHandler):
             UpdateGameDetailsRequest,
         )
 
+        self.handlers[TheaterCommand.EnterGameRequest] = (
+            handle_enter_game,
+            EnterGameRequest,
+        )
+
+        self.handlers[TheaterCommand.EnterGameHostResponse] = (
+            handle_enter_game_response,
+            EnterGameHostResponse,
+        )
+
     async def handle_transaction(self, message: Message) -> None:
         try:
             command = TheaterCommand(message.service)
@@ -140,3 +159,13 @@ class Theater(BaseTheaterHandler):
         # Compile the response into bytes
         response_bytes = message.compile()
         await self.websocket.send_bytes(response_bytes)
+    def start_theater_transaction(self, service: TheaterCommand, data) -> None:
+        message = Message()
+        message.service = service.value
+        message.type = MessageType.TheaterResponse.value
+        message.data = data
+
+        send_coroutine = self.__send(message)
+
+        loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+        loop.create_task(send_coroutine)
