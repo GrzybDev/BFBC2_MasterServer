@@ -246,22 +246,29 @@ class Plasma(BaseHandler):
             self.timerPing.cancel()
 
         if hasattr(self, "connection"):
-            self.manager.redis.delete(f"account:{self.connection.accountId}")
+            if hasattr(self.connection, "accountId"):
+                self.manager.redis.delete(f"account:{self.connection.accountId}")
 
-            if self.connection.type == ClientType.Client:
-                self.manager.CLIENTS.pop(self.connection.accountId, None)
-            else:
-                self.manager.SERVERS.pop(self.connection.accountId, None)
+                if self.connection.type == ClientType.Client:
+                    self.manager.CLIENTS.pop(self.connection.accountId, None)
+                else:
+                    if hasattr(self.connection, "gameId"):
+                        self.manager.SERVERS.pop(self.connection.accountId, None)
+                        self.manager.database.disable_game(self.connection.gameId)
 
-            if self.connection.accountLoginKey:
-                self.manager.redis.delete(f"session:{self.connection.accountLoginKey}")
+                if self.connection.accountLoginKey:
+                    self.manager.redis.delete(
+                        f"session:{self.connection.accountLoginKey}"
+                    )
 
-            if self.connection.personaId:
-                self.manager.redis.delete(f"profile:{self.connection.personaId}")
-                self.manager.redis.delete(f"presence:{self.connection.personaId}")
+                if self.connection.personaId:
+                    self.manager.redis.delete(f"profile:{self.connection.personaId}")
+                    self.manager.redis.delete(f"presence:{self.connection.personaId}")
 
-            if self.connection.personaLoginKey:
-                self.manager.redis.delete(f"persona:{self.connection.personaLoginKey}")
+                if self.connection.personaLoginKey:
+                    self.manager.redis.delete(
+                        f"persona:{self.connection.personaLoginKey}"
+                    )
 
         if reason:
             logger.info(
