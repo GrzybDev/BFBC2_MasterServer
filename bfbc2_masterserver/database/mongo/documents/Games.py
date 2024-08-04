@@ -1,11 +1,20 @@
-from mongoengine import Document, IntField, ListField, QuerySet, StringField
+from mongoengine import (
+    BooleanField,
+    Document,
+    FloatField,
+    IntField,
+    ListField,
+    ReferenceField,
+    StringField,
+)
 
 
 class Games(Document):
     id = IntField(primary_key=True)
     lid = IntField()
+    owner = ReferenceField("Accounts")
 
-    name = StringField(max_length=64, unique=True)
+    name = StringField(max_length=64)
 
     addrIp = StringField(max_length=15)
     addrPort = IntField()
@@ -19,11 +28,11 @@ class Games(Document):
     joinMode = StringField(max_length=16)
     gameType = StringField(max_length=16)
 
-    serverSoftcore = IntField(default=False)
-    serverHardcore = IntField(default=False)
-    serverHasPassword = IntField(default=False)
-    serverPunkbuster = IntField(default=False)
-    serverEA = IntField(default=False)
+    serverSoftcore = BooleanField(default=False)
+    serverHardcore = BooleanField(default=False)
+    serverHasPassword = BooleanField(default=False)
+    serverPunkbuster = BooleanField(default=False)
+    serverEA = BooleanField(default=False)
 
     serverVersion = StringField(max_length=16)
     clientVersion = StringField(max_length=16)
@@ -35,17 +44,17 @@ class Games(Document):
     gameTime = StringField()
     gameHash = StringField()
     gameRegion = StringField(max_length=2)
-    gamePublic = IntField(default=False)
+    gamePublic = BooleanField(default=False)
     gameElo = IntField(default=1000)
-    gameAutoBalance = IntField(default=False)
+    gameAutoBalance = BooleanField(default=False)
     gameBannerUrl = StringField()
-    gameCrosshair = IntField(default=False)
-    gameFriendlyFire = IntField(default=False)
-    gameKillCam = IntField(default=False)
-    gameMiniMap = IntField(default=False)
-    gameMiniMapSpotting = IntField(default=False)
-    gameThirdPersonVehicleCameras = IntField(default=False)
-    gameThreeDSpotting = IntField(default=False)
+    gameCrosshair = BooleanField(default=False)
+    gameFriendlyFire = FloatField(default=False)
+    gameKillCam = BooleanField(default=False)
+    gameMiniMap = BooleanField(default=False)
+    gameMiniMapSpotting = BooleanField(default=False)
+    gameThirdPersonVehicleCameras = BooleanField(default=False)
+    gameThreeDSpotting = BooleanField(default=False)
 
     numObservers = IntField(default=0)
     maxObservers = IntField(default=0)
