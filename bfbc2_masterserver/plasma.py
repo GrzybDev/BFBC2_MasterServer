@@ -199,10 +199,10 @@ class Plasma(BaseHandler):
             message_encoded: str = b64encode(message_bytes).decode()
             encoded_message_size: int = len(message_bytes)
 
-            # Split the message into fragments
+            # Split the message into fragments of the maximum size
             fragments = [
                 message_encoded[i : i + self.connection.fragmentSize]
-                for i in range(0, len(message_bytes), self.connection.fragmentSize)
+                for i in range(0, len(message_encoded), self.connection.fragmentSize)
             ]
 
             # Send each fragment as a separate message
