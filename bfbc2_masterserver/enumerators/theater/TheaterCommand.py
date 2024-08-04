@@ -20,3 +20,4 @@ class TheaterCommand(Enum):
     EnterGameHostResponse = "EGRS"
     LeaveGame = "ECNL"
     PlayerExited = "PLVT"
+    PlayerEntered = "PENT"

@@ -25,6 +25,9 @@ from bfbc2_masterserver.messages.theater.commands.GetLobbyList import (
 )
 from bfbc2_masterserver.messages.theater.commands.LeaveGame import LeaveGameRequest
 from bfbc2_masterserver.messages.theater.commands.Login import LoginRequest
+from bfbc2_masterserver.messages.theater.commands.PlayerEntered import (
+    PlayerEnteredRequest,
+)
 from bfbc2_masterserver.messages.theater.commands.PlayerExited import (
     PlayerExitedRequest,
 )
@@ -47,6 +50,7 @@ from bfbc2_masterserver.services.theater.get_game_list import handle_get_game_li
 from bfbc2_masterserver.services.theater.get_lobby_list import handle_get_lobby_list
 from bfbc2_masterserver.services.theater.leave_game import handle_leave_game
 from bfbc2_masterserver.services.theater.login import handle_login
+from bfbc2_masterserver.services.theater.player_entered import handle_player_entered
 from bfbc2_masterserver.services.theater.player_exited import handle_player_exited
 from bfbc2_masterserver.services.theater.update_bracket import handle_update_bracket
 from bfbc2_masterserver.services.theater.update_game import handle_update_game
@@ -117,6 +121,12 @@ class Theater(BaseTheaterHandler):
             handle_player_exited,
             PlayerExitedRequest,
         )
+
+        self.handlers[TheaterCommand.PlayerEntered] = (
+            handle_player_entered,
+            PlayerEnteredRequest,
+        )
+
     async def handle_transaction(self, message: Message) -> None:
         try:
             command = TheaterCommand(message.service)
