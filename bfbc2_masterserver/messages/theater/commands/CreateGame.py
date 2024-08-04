@@ -29,5 +29,12 @@ class CreateGameRequest(TheaterTransaction):
     RT: str
 
 
-class CreateGameResponse(TheaterTransaction, GameServer):
-    pass
+class CreateGameResponse(TheaterTransaction):
+    LID: int
+    GID: int
+    MAX_PLAYERS: int = Field(alias="MAX-PLAYERS")
+    EKEY: str
+    UGID: str
+    JOIN: str
+    SECRET: SecretStr
+    J: str
