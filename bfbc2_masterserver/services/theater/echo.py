@@ -3,16 +3,15 @@ from bfbc2_masterserver.messages.theater.commands.Echo import EchoRequest, EchoR
 
 
 def handle_echo(ctx: BaseTheaterHandler, data: EchoRequest):
-    address = ctx.plasma.get_client_address()
-    if not address:
-        return
+    address = ctx.client.plasma.get_client_address()
 
-    ip, _ = address.split(":")
+    if not address or not ctx.client.connection.internalPort:
+        return
 
     response = EchoResponse(
         TXN="ECHO",
-        IP=ip,
-        PORT=ctx.plasma.connection.internalPort,
+        IP=address[0],
+        PORT=ctx.client.connection.internalPort,
         ERR=0,
         TYPE=data.TYPE,
     )

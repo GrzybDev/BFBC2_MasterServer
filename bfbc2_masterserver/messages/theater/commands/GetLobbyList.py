@@ -18,7 +18,7 @@ class GetLobbyListResponse(TheaterTransaction):
     NUM_LOBBIES: int = Field(alias="NUM-LOBBIES")
 
 
-class Lobby(TheaterTransaction):
+class LobbyData(TheaterTransaction):
     LID: int
     PASSING: int
     NAME: str

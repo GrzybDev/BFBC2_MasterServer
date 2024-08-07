@@ -10,7 +10,7 @@ from bfbc2_masterserver.messages.plasma.record.GetRecordAsMap import (
     GetRecordAsMapRequest,
     GetRecordAsMapResponse,
 )
-from bfbc2_masterserver.models.plasma.database.Record import Record
+from bfbc2_masterserver.models.plasma.Record import Record
 
 
 class RecordService(PlasmaService):
@@ -55,24 +55,29 @@ class RecordService(PlasmaService):
     def __handle_get_record_as_map(
         self, data: GetRecordAsMapRequest
     ) -> GetRecordAsMapResponse | TransactionError:
-        records = self.database.get_records(
-            self.plasma.connection.personaId, data.recordName
-        )
+        if self.connection.persona is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        records = self.database.record_get(self.connection.persona.id, data.recordName)
 
         if not records:
             return TransactionError(ErrorCode.RECORD_NOT_FOUND)
 
         values = {record.key: record.value for record in records}
         return GetRecordAsMapResponse(
-            state=1, TTL=0, lastModified=records[0].updated, values=values
+            state=1,
+            TTL=0,
+            lastModified=max(record.updatedAt for record in records),
+            values=values,
         )
 
     def __handle_get_record(
         self, data: GetRecordRequest
     ) -> GetRecordResponse | TransactionError:
-        records = self.database.get_records(
-            self.plasma.connection.personaId, data.recordName
-        )
+        if self.connection.persona is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        records = self.database.record_get(self.connection.persona.id, data.recordName)
 
         if not records:
             return TransactionError(ErrorCode.RECORD_NOT_FOUND)

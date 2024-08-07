@@ -10,7 +10,7 @@ ENV PYTHONUNBUFFERED=1 \
 # Rebuild the source code only when needed
 FROM base AS builder
 
-RUN apk add build-base libffi-dev
+RUN apk add build-base libffi-dev postgresql-dev
 RUN pip install poetry==1.8.2
 
 WORKDIR /app

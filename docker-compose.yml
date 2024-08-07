@@ -1,0 +1,18 @@
+services:
+  redis:
+    image: redis:alpine
+  
+  database:
+    image: postgres:alpine
+    environment:
+      POSTGRES_DB: bfbc2
+      POSTGRES_USER: ea
+      POSTGRES_PASSWORD: bfbc2emu
+    
+  app:
+    build: .
+    environment:
+      DB_CONNECTION_STRING: postgresql://ea:bfbc2emu@database/bfbc2
+      REDIS_HOST: redis
+    ports: 
+      - "8000:8000"

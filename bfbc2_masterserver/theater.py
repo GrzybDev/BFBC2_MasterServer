@@ -4,7 +4,12 @@ import logging
 from fastapi import WebSocket
 from pydantic import ValidationError
 
-from bfbc2_masterserver.dataclasses.Handler import BaseHandler, BaseTheaterHandler
+from bfbc2_masterserver.dataclasses.Client import Client
+from bfbc2_masterserver.dataclasses.Handler import (
+    BaseHandler,
+    BasePlasmaHandler,
+    BaseTheaterHandler,
+)
 from bfbc2_masterserver.dataclasses.Manager import BaseManager
 from bfbc2_masterserver.enumerators.fesl.MessageType import MessageType
 from bfbc2_masterserver.enumerators.theater.TheaterCommand import TheaterCommand
@@ -63,14 +68,13 @@ logger = logging.getLogger(__name__)
 
 class Theater(BaseTheaterHandler):
 
-    handlers = {}
-
-    def __init__(self, manager: BaseManager, plasma: BaseHandler, ws: WebSocket):
+    def __init__(self, manager: BaseManager, client: Client, ws: WebSocket):
         self.manager: BaseManager = manager
-        self.plasma: BaseHandler = plasma
+        self.client: Client = client
         self.websocket: WebSocket = ws
 
         # Register the handlers
+        self.handlers = {}
         self.handlers[TheaterCommand.Connect] = handle_connect, ConnectRequest
         self.handlers[TheaterCommand.Login] = handle_login, LoginRequest
         self.handlers[TheaterCommand.Echo] = handle_echo, EchoRequest
@@ -138,7 +142,7 @@ class Theater(BaseTheaterHandler):
 
         if not self.isInitialized and command == TheaterCommand.Connect:
             self.transactionID = tid
-        elif self.isInitialized:
+        elif self.isInitialized and self.transactionID:
             if self.updateInProgress and command == TheaterCommand.UpdateBracket:
                 self.transactionID += 1
         elif not self.isInitialized:
@@ -184,7 +188,7 @@ class Theater(BaseTheaterHandler):
         await self.websocket.send_bytes(response_bytes)
         logger.debug(f"{self.get_client_address()} <- {message}")
 
-    def start_theater_transaction(self, service: TheaterCommand, data) -> None:
+    def start_transaction(self, service: TheaterCommand, data) -> None:
         message = Message()
         message.service = service.value
         message.type = MessageType.TheaterResponse.value

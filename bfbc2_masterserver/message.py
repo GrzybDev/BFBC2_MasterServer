@@ -5,6 +5,8 @@ from enum import Enum
 from typing import Any, MutableMapping
 from urllib.parse import quote, unquote
 
+from pydantic import SecretStr
+
 # Define constants for the offsets and lengths of the service, kind, and length fields in the message
 SERVICE_OFFSET, SERVICE_LENGTH = (0x0, 0x4)
 KIND_OFFSET, KIND_LENGTH = (SERVICE_OFFSET + SERVICE_LENGTH, 0x4)
@@ -60,7 +62,12 @@ class Message:
             # Create message from arguments (used to create outgoing messages)
             self.service = kwargs.get("service", None)
             self.type = kwargs.get("type", None)
-            self.data = kwargs.get("data", {})
+            data = kwargs.get("data", {})
+
+            if isinstance(data, str):
+                self.__read_data(data.encode("utf-8"), 0)
+            else:
+                self.data = data
 
     def __str__(self) -> str:
         """
@@ -238,6 +245,8 @@ class Message:
         # Otherwise, convert the value to a string and quote it
         if isinstance(value, datetime):
             temp_value: str = quote(value.strftime("%b-%d-%Y %H:%M:%S UTC"))
+        elif isinstance(value, SecretStr):
+            temp_value: str = quote(value.get_secret_value())
         else:
             temp_value: str = quote(str(value))
 
@@ -273,9 +282,13 @@ class Message:
     # Method to convert the data to a string
     def __convert_data(self):
         final_data = ""
-        temp_data = self.__flatten(
-            self.data.model_dump(exclude_none=True, by_alias=True)
-        )
+
+        if isinstance(self.data, dict):
+            temp_data = self.__flatten(self.data)
+        else:
+            temp_data = self.__flatten(
+                self.data.model_dump(exclude_none=True, by_alias=True)
+            )
 
         # For each key-value pair in the flattened data
         for key in temp_data:

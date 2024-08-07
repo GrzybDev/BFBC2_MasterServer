@@ -1,10 +1,14 @@
 import asyncio
 import logging
-from base64 import b64encode
+from base64 import b64decode, b64encode
+from pydoc import resolve
 
 from fastapi import WebSocket
+from pydantic import ValidationError
 
-from bfbc2_masterserver.dataclasses.Handler import BaseHandler
+from bfbc2_masterserver.dataclasses.Client import Client
+from bfbc2_masterserver.dataclasses.Connection import BaseConnection
+from bfbc2_masterserver.dataclasses.Handler import BaseHandler, BasePlasmaHandler
 from bfbc2_masterserver.dataclasses.Manager import BaseManager
 from bfbc2_masterserver.dataclasses.plasma.Service import PlasmaService
 from bfbc2_masterserver.enumerators.client.ClientType import ClientType
@@ -30,18 +34,24 @@ from bfbc2_masterserver.services.plasma.record import RecordService
 logger = logging.getLogger(__name__)
 
 
-class Plasma(BaseHandler):
+class Plasma(BasePlasmaHandler):
 
-    services: dict[FESLService, PlasmaService] = {}
-
-    def __init__(self, manager: BaseManager, ws: WebSocket):
+    def __init__(self, manager: BaseManager, client: Client, ws: WebSocket):
         """
         Initializes the Plasma object with a WebSocket.
         """
+
+        self.timerMemCheck = None
+        self.timerPing = None
+
         self.manager: BaseManager = manager
+        self.client: Client = client
         self.websocket: WebSocket = ws
 
+        self.incoming_queue: list[Chunk] = []
+
         # Register services
+        self.services: dict[FESLService, PlasmaService] = {}
         self.services[FESLService.ConnectService] = ConnectService(self)
         self.services[FESLService.AccountService] = AccountService(self)
         self.services[FESLService.AssociationService] = AssociationService(self)
@@ -78,11 +88,14 @@ class Plasma(BaseHandler):
         tid: int = message.type & 0x00FFFFFF
 
         # If the Plasma object is not initialized and the service is ConnectService, set the transaction id
-        if not hasattr(self, "connection") and service == FESLService.ConnectService:
-            self.transactionID = tid
+        skipTIDCheck = False
+
+        if not self.transactionID:
+            if service == FESLService.ConnectService:
+                skipTIDCheck = True
 
         # If the transaction id does not match the expected id
-        if tid != self.transactionID:
+        if tid != self.transactionID and not skipTIDCheck:
             # If the message type is a response
             if message_type == MessageType.PlasmaResponse:
                 # Simple transactions with a transaction id of 0 are unscheduled transactions (responses)
@@ -97,16 +110,35 @@ class Plasma(BaseHandler):
         response: TransactionError | TransactionSkip | Message
 
         # If the Plasma object is not initialized and the message type is not a request, set the response to an error
-        if (
-            not hasattr(self, "connection")
-            and message_type != MessageType.PlasmaRequest
-        ):
+        if not self.transactionID and service != FESLService.ConnectService:
             response = self.finish_message(
                 message, TransactionError(ErrorCode.NOT_INITIALIZED)
             )
         # If the message type is a request, handle the request
         elif message_type in [MessageType.PlasmaRequest, MessageType.PlasmaResponse]:
-            response = self.services[service].handle(message)
+            response = self.get_response(message)
+        elif message_type in [
+            MessageType.PlasmaChunkedRequest,
+            MessageType.PlasmaChunkedResponse,
+        ]:
+            chunk = Chunk(**message.data)
+            self.incoming_queue.append(chunk)
+
+            received_length = sum([len(msg.data) for msg in self.incoming_queue])
+            expected_length = chunk.size
+
+            if received_length == expected_length:
+                encoded_string = "".join([msg.data for msg in self.incoming_queue])
+                decoded_string = b64decode(encoded_string).decode()
+                self.incoming_queue.clear()
+
+                message = Message(
+                    service=service.value, type=message_type.value, data=decoded_string
+                )
+
+                response = self.get_response(message)
+            else:
+                return
         # If the message type is not valid, raise an error
         else:
             raise ValueError(f"Invalid message type: {message_type}")
@@ -122,6 +154,38 @@ class Plasma(BaseHandler):
         # Increment the transaction id for the next transaction
         self.transactionID += 1
 
+    def get_response(
+        self, message: Message
+    ) -> TransactionError | TransactionSkip | Message:
+        txn = message.data["TXN"]
+        resolver, model = self.services[FESLService(message.service)]._get_resolver(txn)
+
+        try:
+            message.data = model.model_validate(message.data)
+
+            # Log the incoming message
+            logger.debug(f"{self.get_client_address()} -> {message}")
+        except ValidationError as e:
+            logger.exception(
+                f"{self.get_client_address()} -> {e}",
+                exc_info=True,
+            )
+
+            return TransactionError(ErrorCode.PARAMETERS_ERROR)
+
+        response_data = resolver(message.data)
+
+        if isinstance(response_data, TransactionSkip):
+            return response_data
+        elif isinstance(message.data, ValidationError):
+            message.data = PlasmaTransaction(TXN=txn)
+
+        response: Message = self.finish_message(message, response_data)
+
+        # Log the outgoing message
+        logger.debug(f"{self.get_client_address()} <- {response}")
+        return response
+
     def finish_message(
         self, message: Message, response_data, noTransactionID=False
     ) -> Message:
@@ -133,16 +197,20 @@ class Plasma(BaseHandler):
             response.type = MessageType.PlasmaResponse.value
 
             # If the Plasma object is not initialized, set the error message type to InitialError and add the transaction id
-            if not hasattr(self, "connection"):
+            if self.transactionID is None:
                 response.type = MessageType.InitialError.value
 
             # Add the error details to the message
             response.data = PlasmaError(
-                TXN=message.data.TXN,
+                TXN=(
+                    message.data["TXN"]
+                    if isinstance(message.data, dict)
+                    else message.data.TXN
+                ),
                 errorCode=ErrorCode(response_data.errorCode),
                 localizedMessage=response_data.localizedMessage,
                 errorContainer=response_data.errorContainer,
-                TID=self.transactionID if not hasattr(self, "connection") else None,
+                TID=self.transactionID if not self.transactionID else None,
             )
         else:
             # Prepare the response message
@@ -178,9 +246,17 @@ class Plasma(BaseHandler):
         message.type = MessageType.PlasmaResponse.value
         message.data = PlasmaTransaction(TXN=txn)
 
-        request = self.services[service].create_message(message, data)
+        generator = self.services[service]._get_generator(txn.value)
+        request = generator(data)
 
-        send_coroutine = self.__send(request)
+        finished_message: Message = self.finish_message(
+            message, request, noTransactionID=True
+        )
+
+        # Log the outgoing message
+        logger.debug(f"{self.get_client_address()} <- {finished_message}")
+
+        send_coroutine = self.__send(finished_message)
 
         loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
         loop.create_task(send_coroutine)
@@ -189,8 +265,11 @@ class Plasma(BaseHandler):
         # Compile the response into bytes
         response_bytes = message.compile()
 
+        if not self.client.connection.fragmentSize:
+            raise RuntimeError("Fragment size is not set")
+
         # If the response is too big to send in one piece
-        if len(response_bytes) > self.connection.fragmentSize:
+        if len(response_bytes) > self.client.connection.fragmentSize:
             # Message is too big, we need to base64 encode it and split it into fragments
             message_bytes = response_bytes[HEADER_LENGTH:]  # Get rid of the header
 
@@ -201,14 +280,21 @@ class Plasma(BaseHandler):
 
             # Split the message into fragments of the maximum size
             fragments = [
-                message_encoded[i : i + self.connection.fragmentSize]
-                for i in range(0, len(message_encoded), self.connection.fragmentSize)
+                message_encoded[i : i + self.client.connection.fragmentSize]
+                for i in range(
+                    0, len(message_encoded), self.client.connection.fragmentSize
+                )
             ]
 
             # Send each fragment as a separate message
             for fragment in fragments:
                 message_fragment = Message()
                 message_fragment.service = message.service
+
+                if self.transactionID is None:
+                    # We should never get here, as InitialError messages are not big enough to be fragmented
+                    raise ValueError("Transaction ID is not set")
+
                 message_fragment.type = (
                     MessageType.PlasmaChunkedResponse.value & 0xFF000000
                     | self.transactionID
@@ -239,36 +325,24 @@ class Plasma(BaseHandler):
         Handles the client disconnecting.
         """
 
-        if hasattr(self, "timerMemCheck"):
+        if self.timerMemCheck:
             self.timerMemCheck.cancel()
 
-        if hasattr(self, "timerPing"):
+        if self.timerPing:
             self.timerPing.cancel()
 
-        if hasattr(self, "connection"):
-            if hasattr(self.connection, "accountId"):
-                self.manager.redis.delete(f"account:{self.connection.accountId}")
+        if (
+            self.client.connection.account
+            and self.client.connection.type == ClientType.Client
+        ):
+            self.manager.CLIENTS.pop(self.client.connection.account.id, None)
 
-                if self.connection.type == ClientType.Client:
-                    self.manager.CLIENTS.pop(self.connection.accountId, None)
-                else:
-                    if hasattr(self.connection, "gameId"):
-                        self.manager.SERVERS.pop(self.connection.accountId, None)
-                        self.manager.database.disable_game(self.connection.gameId)
+        if self.client.connection.persona and self.client.connection.personaSession:
+            self.manager.redis.delete(f"client:{self.client.connection.personaSession}")
+            self.manager.redis.delete(f"presence:{self.client.connection.persona.id}")
 
-                if self.connection.accountLoginKey:
-                    self.manager.redis.delete(
-                        f"session:{self.connection.accountLoginKey}"
-                    )
-
-                if self.connection.personaId:
-                    self.manager.redis.delete(f"profile:{self.connection.personaId}")
-                    self.manager.redis.delete(f"presence:{self.connection.personaId}")
-
-                if self.connection.personaLoginKey:
-                    self.manager.redis.delete(
-                        f"persona:{self.connection.personaLoginKey}"
-                    )
+        if self.client.connection.game:
+            self.manager.database.game_disable(self.client.connection.game.id)
 
         if reason:
             logger.info(

@@ -11,17 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 def handle_login(ctx: BaseTheaterHandler, data: LoginRequest):
-    uid = int(ctx.manager.redis.get(f"persona:{data.LKEY}").decode("utf-8"))
-
-    if not uid or ctx.plasma.connection.personaId != uid:
+    if not ctx.client.connection.account or not ctx.client.connection.persona:
         logger.error(f"Persona is not logged in Plasma!")
         return
 
-    database = ctx.manager.database
-    persona = database.get_persona_by_id(uid)
+    if ctx.client.connection.personaSession != data.LKEY:
+        logger.error(f"Plasma session key is invalid!")
+        return
 
-    if ctx.plasma.connection.type == ClientType.Client:
-        ctx.manager.CLIENTS[ctx.plasma.connection.accountId].theater = ctx
+    database = ctx.manager.database
+    persona = database.persona_get_by_id(ctx.client.connection.persona.id)
 
     response = LoginResponse(NAME=persona.name)
     yield response

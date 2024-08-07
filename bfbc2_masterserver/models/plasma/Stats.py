@@ -1,9 +1,11 @@
+from decimal import Decimal
+
 from pydantic import BaseModel
 
 
 class Stat(BaseModel):
     key: str
-    value: float
+    value: Decimal
 
 
 class RankedStat(Stat):

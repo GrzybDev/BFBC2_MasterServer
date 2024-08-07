@@ -104,8 +104,16 @@ class ConnectService(PlasmaService):
             A HelloResponse if the data is valid.
         """
 
-        if hasattr(self.plasma, "connection"):
+        if self.connection.fragmentSize:
             return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        self.connection.clientName = data.clientString
+        self.connection.clientVersion = data.clientVersion
+        self.connection.locale = data.locale
+        self.connection.platform = data.clientPlatform
+        self.connection.type = data.clientType
+        self.connection.fragmentSize = data.fragmentSize
+        self.plasma.transactionID = 1
 
         theater_ip = THEATER_HOST.format(clientString=data.clientString)
         theater_port = (
@@ -133,13 +141,6 @@ class ConnectService(PlasmaService):
         # response.addressRemapping = "\0"
         # If not set, client will set this value to NULL internally (just like above)
         # No clue what this value is used for
-
-        self.plasma.connection = BaseConnection()
-        self.plasma.connection.clientName = data.clientString
-        self.plasma.connection.locale = data.locale
-        self.plasma.connection.platform = data.clientPlatform
-        self.plasma.connection.type = data.clientType
-        self.plasma.connection.fragmentSize = data.fragmentSize
 
         # Activate both ping and memcheck timers
         loop = asyncio.get_event_loop()
@@ -194,7 +195,7 @@ class ConnectService(PlasmaService):
         self.plasma.timerPing = loop.call_later(
             (
                 CLIENT_PING_INTERVAL
-                if self.plasma.connection.type == ClientType.Client
+                if self.plasma.client.connection.type == ClientType.Client
                 else SERVER_PING_INTERVAL
             ),
             self.__make_ping,
@@ -209,7 +210,7 @@ class ConnectService(PlasmaService):
         self.plasma.timerMemCheck = loop.call_later(
             (
                 CLIENT_MEMCHECK_INTERVAL
-                if self.plasma.connection.type == ClientType.Client
+                if self.plasma.client.connection.type == ClientType.Client
                 else SERVER_MEMCHECK_INTERVAL
             ),
             self.__make_memcheck,

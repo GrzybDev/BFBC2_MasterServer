@@ -2,6 +2,7 @@ from typing import Optional
 
 from pydantic import Field
 
+from bfbc2_masterserver.enumerators.theater.JoinMode import JoinMode
 from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
@@ -26,7 +27,10 @@ class UpdateGameRequest(TheaterTransaction):
     gamePublic: Optional[bool] = Field(alias="B-U-public", default=None)
     gameRegion: Optional[str] = Field(alias="B-U-region", default=None)
     gameSGUID: Optional[int] = Field(alias="B-U-sguid", default=None)
-    joinMode: Optional[str] = Field(alias="JOIN", default=None)
+    joinMode: Optional[JoinMode] = Field(alias="JOIN", default=None)
+    maxPlayers: Optional[int] = Field(alias="MAX-PLAYERS", default=None)
+    numObservers: Optional[int] = Field(alias="B-numObservers", default=None)
+    maxObservers: Optional[int] = Field(alias="B-maxObservers", default=None)
 
 
 class UpdateGameResponse(TheaterTransaction):

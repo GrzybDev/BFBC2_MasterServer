@@ -6,3 +6,4 @@ class AssocationType(Enum):
     PlasmaBlock = "PlasmaBlock"
     PlasmaFriends = "PlasmaFriends"
     PlasmaRecentPlayers = "PlasmaRecentPlayers"
+    DogTags = "dogtags"

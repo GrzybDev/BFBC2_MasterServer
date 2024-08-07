@@ -1,5 +1,9 @@
+from decimal import Decimal
+
 from bfbc2_masterserver.dataclasses.plasma.Service import PlasmaService
+from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
+from bfbc2_masterserver.error import TransactionError
 from bfbc2_masterserver.messages.plasma.ranking.GetRankedStatsForOwners import (
     GetRankedStatsForOwnersRequest,
     GetRankedStatsForOwnersResponse,
@@ -17,11 +21,8 @@ from bfbc2_masterserver.messages.plasma.ranking.GetTopNAndStats import (
     GetTopNAndStatsResponse,
     Leaderboard,
 )
-from bfbc2_masterserver.models.plasma.database.Stats import (
-    RankedOwnerStat,
-    RankedStat,
-    Stat,
-)
+from bfbc2_masterserver.models.plasma.database.Ranking import Ranking
+from bfbc2_masterserver.models.plasma.Stats import RankedOwnerStat, RankedStat, Stat
 
 
 class RankingService(PlasmaService):
@@ -73,27 +74,42 @@ class RankingService(PlasmaService):
         """
         return self.generators[FESLTransaction(txn)]
 
-    def __handle_get_stats(self, data: GetStatsRequest) -> GetStatsResponse:
-        stats: list[Stat] = self.database.get_stats(
-            self.plasma.connection.personaId, data.keys
+    def __handle_get_stats(
+        self, data: GetStatsRequest
+    ) -> GetStatsResponse | TransactionError:
+        if self.connection.persona is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        ranking: list[Ranking] = self.database.ranking_get(
+            self.connection.persona.id, data.keys
         )
+
+        stats: list[Stat] = [Stat(key=rank.key, value=rank.value) for rank in ranking]
         return GetStatsResponse(stats=stats)
 
     def __handle_get_ranked_stats_for_owners(
         self, data: GetRankedStatsForOwnersRequest
     ) -> GetRankedStatsForOwnersResponse:
+        rankedStats = self.database.ranking_get_ranked_owners(
+            [owner.ownerId for owner in data.owners], data.keys
+        )
+
         stats: list[RankedOwnerStat] = []
 
         for owner in data.owners:
-            ownerStats: list[RankedStat] = self.database.get_ranked_stats(
-                owner.ownerId, data.keys
-            )
-
             stats.append(
                 RankedOwnerStat(
-                    rankedStats=ownerStats,
                     ownerId=owner.ownerId,
                     ownerType=owner.ownerType,
+                    rankedStats=[
+                        RankedStat(
+                            key=stat.key,
+                            value=Decimal(min(stat.value, 250001)),
+                            rank=rank,
+                        )
+                        for stat, rank in rankedStats
+                        if stat.owner_id == owner.ownerId
+                    ],
                 )
             )
 
@@ -101,14 +117,43 @@ class RankingService(PlasmaService):
 
     def __handle_get_ranked_stats(
         self, data: GetRankedStatsRequest
-    ) -> GetRankedStatsResponse:
-        stats: list[RankedStat] = self.database.get_ranked_stats(
-            self.plasma.connection.personaId, data.keys
+    ) -> GetRankedStatsResponse | TransactionError:
+        if self.connection.persona is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        rankedStats = self.database.ranking_get_ranked(
+            self.connection.persona.id, data.keys
         )
+
+        stats = [
+            RankedStat(key=stat.key, value=Decimal(min(stat.value, 250001)), rank=rank)
+            for stat, rank in rankedStats
+        ]
+
         return GetRankedStatsResponse(stats=stats)
 
     def __handle_get_top_n_and_stats(
         self, data: GetTopNAndStatsRequest
     ) -> GetTopNAndStatsResponse:
-        leaderboard: list[Leaderboard] = self.database.get_leaderboard(data.keys)
+        ranking = self.database.ranking_leaderboard_get(
+            data.key, data.minRank, data.maxRank
+        )
+
+        leaderboard = []
+
+        for persona, rank in ranking:
+            persona_stats = self.database.ranking_get(persona.owner.id, data.keys)
+
+            leaderboard.append(
+                Leaderboard(
+                    addStats=[
+                        Stat(key=stat.key, value=Decimal(min(stat.value, 250001)))
+                        for stat in persona_stats
+                    ],
+                    owner=persona.owner.id,
+                    name=persona.owner.name,
+                    rank=rank,
+                )
+            )
+
         return GetTopNAndStatsResponse(stats=leaderboard)

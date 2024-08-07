@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import SecretStr
 
 from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
@@ -5,8 +7,9 @@ from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransactio
 
 class NuEntitleGameRequest(PlasmaTransaction):
     key: str
-    nuid: str
-    password: SecretStr
+    encryptedInfo: Optional[str] = None
+    nuid: Optional[str] = None
+    password: Optional[SecretStr] = None
 
 
 class NuEntitleGameResponse(PlasmaTransaction):

@@ -2,7 +2,9 @@ import json
 from base64 import b64encode
 
 from bfbc2_masterserver.dataclasses.plasma.Service import PlasmaService
+from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
+from bfbc2_masterserver.error import TransactionError
 from bfbc2_masterserver.messages.plasma.presence.SetPresenceStatus import (
     SetPresenceStatusRequest,
     SetPresenceStatusResponse,
@@ -45,10 +47,15 @@ class PresenceService(PlasmaService):
 
     def __handle_set_presence_status(
         self, data: SetPresenceStatusRequest
-    ) -> SetPresenceStatusResponse:
+    ) -> SetPresenceStatusResponse | TransactionError:
         status = json.dumps(data.status)
         statusEncoded = b64encode(status.encode("utf-8")).decode("utf-8")
 
-        self.redis.set(f"presence:{self.plasma.connection.personaId}", statusEncoded)
+        if not self.connection.persona:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        self.plasma.manager.redis.set(
+            f"presence:{self.connection.persona.id}", statusEncoded
+        )
 
         return SetPresenceStatusResponse()

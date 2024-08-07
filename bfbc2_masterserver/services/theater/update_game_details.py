@@ -6,6 +6,6 @@ from bfbc2_masterserver.messages.theater.commands.UpdateGameDetails import (
 
 def handle_update_game_details(ctx: BaseTheaterHandler, data: UpdateGameDetailsRequest):
     database = ctx.manager.database
-    database.update_game(data)
+    database.game_update(data)
 
     yield

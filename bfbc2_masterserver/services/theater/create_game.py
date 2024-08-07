@@ -1,26 +1,44 @@
-from bfbc2_masterserver.database.database import BaseDatabase
 from bfbc2_masterserver.dataclasses.Client import Client
 from bfbc2_masterserver.dataclasses.Handler import BaseTheaterHandler
+from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.messages.theater.commands.CreateGame import (
     CreateGameRequest,
     CreateGameResponse,
 )
-from bfbc2_masterserver.models.plasma.database.Game import GameServer
+from bfbc2_masterserver.models.theater.database.Game import Game
 
 
 def handle_create_game(ctx: BaseTheaterHandler, data: CreateGameRequest):
-    database: BaseDatabase = ctx.manager.database
-    gameData: GameServer = database.create_game(ctx.plasma.connection.accountId, data)
+    database = ctx.manager.database
 
-    ctx.manager.SERVERS[gameData.GID] = Client()
-    ctx.manager.SERVERS[gameData.GID].plasma = ctx.plasma
-    ctx.manager.SERVERS[gameData.GID].theater = ctx
-    ctx.plasma.connection.gameId = gameData.GID
+    if (
+        ctx.client.connection.platform is None
+        or ctx.client.connection.locale is None
+        or ctx.client.connection.clientVersion is None
+    ):
+        raise Exception("Cannot create game without required connection metadata!")
+
+    if ctx.client.connection.persona is None:
+        raise Exception("Cannot create game without a persona!")
+
+    gameData = database.game_create(
+        ctx.client.connection.persona.id,
+        data,
+        clientPlatform=ctx.client.connection.platform,
+        clientLocale=ctx.client.connection.locale,
+        clientVersion=ctx.client.connection.clientVersion,
+    )
+
+    if isinstance(gameData, ErrorCode):
+        return
+
+    ctx.manager.SERVERS[gameData.id] = ctx.client
+    ctx.client.connection.game = gameData
 
     yield CreateGameResponse.model_validate(
         {
-            "LID": gameData.LID,
-            "GID": gameData.GID,
+            "LID": gameData.lobbyId,
+            "GID": gameData.id,
             "MAX-PLAYERS": gameData.maxPlayers,
             "EKEY": gameData.ekey,
             "UGID": gameData.ugid,

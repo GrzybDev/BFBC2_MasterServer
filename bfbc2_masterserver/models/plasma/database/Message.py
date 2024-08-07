@@ -1,27 +1,44 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, Field
+from sqlalchemy import Column, DateTime, func
+from sqlmodel import Field, Relationship, SQLModel
 
+from bfbc2_masterserver.models.plasma.database.MessageAttachment import (
+    MessageAttachment,
+)
 
-class Attachment(BaseModel):
-    key: str
-    type: str
-    data: str
-
-
-class Target(BaseModel):
-    name: str
-    id: int
-    type: int
+if TYPE_CHECKING:
+    from bfbc2_masterserver.models.plasma.database.Persona import Persona
 
 
-class Message(BaseModel):
-    attachments: list[Attachment]
+class Message(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+
+    sender: "Persona" = Relationship(
+        back_populates="messagesSent",
+        sa_relationship_kwargs=dict(foreign_keys="[Message.sender_id]"),
+    )
+    sender_id: int = Field(default=None, foreign_key="persona.id")
+
+    recipient: "Persona" = Relationship(
+        back_populates="messages",
+        sa_relationship_kwargs=dict(foreign_keys="[Message.recipient_id]"),
+    )
+    recipient_id: int = Field(default=None, foreign_key="persona.id")
+
+    attachments: list["MessageAttachment"] = Relationship(back_populates="message")
+
     deliveryType: str
-    messageId: str
     messageType: str
     purgeStrategy: str
-    from_: Target = Field(validation_alias="from")
-    to: list[Target]
-    timeSent: datetime
-    expiration: datetime
+
+    timeSent: datetime = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )
+
+    expiration: datetime = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True)),
+    )

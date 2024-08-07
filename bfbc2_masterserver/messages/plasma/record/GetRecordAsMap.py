@@ -11,5 +11,5 @@ class GetRecordAsMapRequest(PlasmaTransaction):
 class GetRecordAsMapResponse(PlasmaTransaction):
     state: int
     TTL: int
-    values: dict[int, str]
+    values: dict[str, str]
     lastModified: datetime

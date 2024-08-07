@@ -1,6 +1,6 @@
 from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
-from bfbc2_masterserver.models.plasma.database.Stats import RankedOwnerStat
 from bfbc2_masterserver.models.plasma.Owner import RankedOwner
+from bfbc2_masterserver.models.plasma.Stats import RankedOwnerStat
 
 
 class GetRankedStatsForOwnersRequest(PlasmaTransaction):

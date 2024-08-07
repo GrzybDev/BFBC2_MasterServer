@@ -1,6 +1,7 @@
 import logging
 import random
 import string
+import token
 from base64 import b64encode
 
 from authlib.jose import jwt
@@ -56,6 +57,10 @@ from bfbc2_masterserver.messages.plasma.account.NuGetTos import (
     NuGetTosRequest,
     NuGetTosResponse,
 )
+from bfbc2_masterserver.messages.plasma.account.NuGrantEntitlement import (
+    NuGrantEntitlementRequest,
+    NuGrantEntitlementResponse,
+)
 from bfbc2_masterserver.messages.plasma.account.NuLogin import (
     NuLoginRequest,
     NuLoginResponse,
@@ -64,8 +69,14 @@ from bfbc2_masterserver.messages.plasma.account.NuLoginPersona import (
     NuLoginPersonaRequest,
     NuLoginPersonaResponse,
 )
+from bfbc2_masterserver.messages.plasma.account.NuLookupUserInfo import (
+    NuLookupUserInfoRequest,
+    NuLookupUserInfoResponse,
+)
 from bfbc2_masterserver.models.plasma.database.Account import Account
-from bfbc2_masterserver.models.plasma.database.Entitlement import Entitlement
+from bfbc2_masterserver.models.plasma.database.Persona import Persona
+from bfbc2_masterserver.models.plasma.Entitlement import Entitlement
+from bfbc2_masterserver.models.plasma.UserInfo import UserInfo
 from bfbc2_masterserver.tools.country_list import COUNTRY_LIST, getLocalizedCountryList
 from bfbc2_masterserver.tools.terms_of_service import getLocalizedTOS
 
@@ -138,6 +149,16 @@ class AccountService(PlasmaService):
             NuEntitleUserRequest,
         )
 
+        self.resolvers[FESLTransaction.NuLookupUserInfo] = (
+            self.__handle_nu_lookup_user_info,
+            NuLookupUserInfoRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuGrantEntitlement] = (
+            self.__handle_nu_grant_entitlement,
+            NuGrantEntitlementRequest,
+        )
+
     def _get_resolver(self, txn):
         """
         Gets the resolver for a given transaction.
@@ -175,7 +196,7 @@ class AccountService(PlasmaService):
             The response to the transaction.
         """
 
-        countryList = getLocalizedCountryList(self.plasma.connection.locale)
+        countryList = getLocalizedCountryList(self.connection.locale)
         return GetCountryListResponse(countryList=countryList)
 
     def __handle_nu_get_tos(self, data: NuGetTosRequest) -> NuGetTosResponse:
@@ -192,11 +213,11 @@ class AccountService(PlasmaService):
         # In theory everything shows that here we should send the TOS for the selected country code.
         # However, this doesn't seem to be the case. Original server sends the same TOS for every country code, only (game) language seems to have any effect.
 
-        tos = getLocalizedTOS(self.plasma.connection.locale)
+        tos = getLocalizedTOS(self.connection.locale)
         return NuGetTosResponse(tos=tos["tos"], version=tos["version"])
 
     def __handle_nu_add_account(
-        self, data: NuAddAccountRequest
+        self, data: NuAddAccountRequest | ValidationError
     ) -> NuAddAccountResponse | TransactionError:
         if isinstance(data, ValidationError):
             errContainer = []
@@ -224,23 +245,25 @@ class AccountService(PlasmaService):
 
             return TransactionError(ErrorCode.PARAMETERS_ERROR, errContainer)
 
-        registered: bool | ErrorCode = self.database.register(
-            nuid=data.nuid,
-            password=data.password,
-            globalOptin=data.globalOptin,
-            thirdPartyOptin=data.thirdPartyOptin,
-            parentalEmail=data.parentalEmail,
-            DOBDay=data.DOBDay,
-            DOBMonth=data.DOBMonth,
-            DOBYear=data.DOBYear,
-            zipCode=data.zipCode,
-            country=data.country,
-            language=data.language,
-            tosVersion=data.tosVersion,
+        registered: bool = self.database.account_register(
+            Account(
+                nuid=data.nuid,
+                password=data.password.get_secret_value(),
+                globalOptin=data.globalOptin,
+                thirdPartyOptin=data.thirdPartyOptin,
+                parentalEmail=data.parentalEmail,
+                DOBDay=data.DOBDay,
+                DOBMonth=data.DOBMonth,
+                DOBYear=data.DOBYear,
+                zipCode=data.zipCode,
+                country=data.country,
+                language=data.language,
+                tosVersion=data.tosVersion,
+            )
         )
 
-        if isinstance(registered, ErrorCode):
-            return TransactionError(registered)
+        if not registered:
+            return TransactionError(ErrorCode.ALREADY_REGISTERED)
 
         return NuAddAccountResponse()
 
@@ -251,7 +274,7 @@ class AccountService(PlasmaService):
             try:
                 decoded_jwt = jwt.decode(
                     data.encryptedInfo.encode("utf-8"),
-                    self.database.secret_key,
+                    self.database._secret_key,
                 )
 
                 decoded_jwt.validate()
@@ -260,34 +283,31 @@ class AccountService(PlasmaService):
                 return TransactionError(ErrorCode.SYSTEM_ERROR)
 
             data.nuid = decoded_jwt.get("nuid")
-            data.password = decoded_jwt.get("password")
+            data.password = SecretStr(decoded_jwt.get("password", ""))
 
         if not data.nuid or not data.password:
             return TransactionError(ErrorCode.PARAMETERS_ERROR)
 
-        account: Account | ErrorCode = self.database.login(
-            nuid=data.nuid, password=data.password
+        account: Account | ErrorCode = self.database.account_login(
+            nuid=data.nuid, password=data.password.get_secret_value()
         )
 
         if isinstance(account, ErrorCode):
             return TransactionError(account)
 
-        client_type: ClientType = self.plasma.connection.type
-        is_service_account: bool = account.serviceAccount
-
         # Allow login to service account only for servers
-        if client_type == ClientType.Client:
-            if is_service_account:
+        if self.connection.type == ClientType.Client:
+            if account.serviceAccount:
                 return TransactionError(ErrorCode.SYSTEM_ERROR)
         else:
-            if not is_service_account:
+            if not account.serviceAccount:
                 return TransactionError(ErrorCode.SYSTEM_ERROR)
 
         encryptedLoginInfo: str | None = None
 
         if data.returnEncryptedInfo:
             encoded_jwt: bytes = jwt.encode(
-                {"alg": self.database.algorithm},
+                {"alg": self.database._algorithm},
                 {
                     "nuid": data.nuid,
                     "password": (
@@ -296,14 +316,13 @@ class AccountService(PlasmaService):
                         else data.password
                     ),
                 },
-                self.database.secret_key,
+                self.database._secret_key,
                 check=False,
             )
 
             encryptedLoginInfo = encoded_jwt.decode("utf-8")
 
         # Check if this user already have session active
-        user_session = self.redis.get(f"account:{account.id}")
         login_key: str = (
             "".join(
                 random.choice(string.ascii_letters + string.digits + "-_")
@@ -312,40 +331,37 @@ class AccountService(PlasmaService):
             + "."
         )
 
-        if not is_service_account:
+        if not account.serviceAccount:
             # Logoff all other sessions
-            if user_session:
+            if account.id in self.plasma.manager.CLIENTS:
                 old_client: Client = self.plasma.manager.CLIENTS[account.id]
                 old_client.plasma.disconnect(2)
 
             # Check whether this user accepted latest TOS
             if data.tosVersion:  # Update TOS version if provided
-                self.database.accept_tos(account.id, data.tosVersion)
+                self.database.account_accept_tos(account.id, data.tosVersion)
             else:
-                tos = getLocalizedTOS(self.plasma.connection.locale)
+                tos = getLocalizedTOS(self.connection.locale)
 
                 if account.tosVersion != tos["version"]:
                     return TransactionError(ErrorCode.TOS_OUT_OF_DATE)
 
             # Check whether this user is entitled to play the game
-            is_entitled = self.database.is_entitled(
-                account.id, self.plasma.connection.clientName
+            if not self.connection.clientName:
+                return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+            is_entitled = self.database.account_is_entitled(
+                account.id, self.connection.clientName
             )
 
             if not is_entitled:
                 return TransactionError(ErrorCode.NOT_ENTITLED_TO_GAME)
 
-        self.redis.set(f"account:{account.id}", login_key)
-        self.redis.set(f"session:{login_key}", account.id)
+        self.connection.account = account
+        self.connection.accountSession = login_key
 
-        self.plasma.connection.accountId = account.id
-        self.plasma.connection.accountLoginKey = login_key
-
-        client = Client()
-        client.plasma = self.plasma
-
-        if client_type == ClientType.Client:
-            self.plasma.manager.CLIENTS[account.id] = client
+        if self.connection.type == ClientType.Client:
+            self.plasma.manager.CLIENTS[account.id] = self.plasma.client
 
         response = NuLoginResponse(
             nuid=data.nuid,
@@ -359,45 +375,68 @@ class AccountService(PlasmaService):
 
     def __handle_nu_get_personas(
         self, data: NuGetPersonasRequest
-    ) -> NuGetPersonasResponse:
-        personas = self.database.get_personas(
-            account_id=self.plasma.connection.accountId
+    ) -> NuGetPersonasResponse | TransactionError:
+        if self.connection.account is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        personas: list[Persona] | ErrorCode = self.database.persona_get_all(
+            self.connection.account.id
         )
-        return NuGetPersonasResponse(personas=personas)
+
+        if isinstance(personas, ErrorCode):
+            return TransactionError(personas)
+
+        return NuGetPersonasResponse(personas=[persona.name for persona in personas])
 
     def __handle_nu_add_persona(
         self, data: NuAddPersonaRequest
     ) -> NuAddPersonaResponse | TransactionError:
-        success = self.database.add_persona(
-            account_id=self.plasma.connection.accountId, name=data.name
+        if self.connection.account is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        new_persona = Persona(
+            owner=self.connection.account,
+            name=data.name,
         )
 
-        if isinstance(success, ErrorCode):
-            return TransactionError(success)
+        success = self.database.persona_add(
+            self.connection.account.id,
+            new_persona,
+        )
+
+        if not success:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
 
         return NuAddPersonaResponse()
 
     def __handle_nu_disable_persona(
         self, data: NuDisablePersonaRequest
     ) -> NuDisablePersonaResponse | TransactionError:
-        success = self.database.disable_persona(
-            account_id=self.plasma.connection.accountId, name=data.name
-        )
+        if self.connection.account is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
 
-        if isinstance(success, ErrorCode):
-            return TransactionError(success)
+        persona = self.database.persona_get(self.connection.account.id, data.name)
+
+        if isinstance(persona, ErrorCode):
+            return TransactionError(persona)
+
+        success = self.database.persona_delete(self.connection.account.id, persona.id)
+
+        if not success:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
 
         return NuDisablePersonaResponse()
 
     def __handle_nu_login_persona(
         self, data: NuLoginPersonaRequest
     ) -> NuLoginPersonaResponse | TransactionError:
-        persona = self.database.get_persona(
-            account_id=self.plasma.connection.accountId, name=data.name
-        )
+        if self.connection.account is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        persona = self.database.persona_get(self.connection.account.id, data.name)
 
         if isinstance(persona, ErrorCode):
-            return TransactionError(ErrorCode.USER_NOT_FOUND)
+            return TransactionError(persona)
 
         # Generate new login key for persona
         login_key = (
@@ -408,16 +447,15 @@ class AccountService(PlasmaService):
             + "."
         )
 
-        self.plasma.connection.personaId = persona.id
-        self.plasma.connection.personaLoginKey = login_key
-        self.plasma.connection.personaName = persona.name
+        self.connection.persona = persona
+        self.connection.personaSession = login_key
 
-        self.redis.set(f"profile:{persona.id}", login_key)
-        self.redis.set(f"persona:{login_key}", persona.id)
+        if self.connection.type == ClientType.Client:
+            self.plasma.manager.redis.set("client:" + login_key, persona.id)
 
         response = NuLoginPersonaResponse(
             lkey=login_key,
-            profileId=self.plasma.connection.accountId,
+            profileId=self.connection.account.id,
             userId=persona.id,
         )
 
@@ -426,16 +464,32 @@ class AccountService(PlasmaService):
     def __handle_nu_entitle_game(
         self, data: NuEntitleGameRequest
     ) -> NuEntitleGameResponse | TransactionError:
-        account: Account | ErrorCode = self.database.login(
-            nuid=data.nuid, password=data.password
+        if (not data.nuid or not data.password) and data.encryptedInfo:
+            try:
+                decoded_jwt = jwt.decode(
+                    data.encryptedInfo.encode("utf-8"),
+                    self.database._secret_key,
+                )
+
+                decoded_jwt.validate()
+            except Exception as e:
+                logger.error(f"Error decoding/validating JWT: {e}")
+                return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+            data.nuid = decoded_jwt.get("nuid")
+            data.password = SecretStr(decoded_jwt.get("password", ""))
+
+        if not data.nuid or not data.password:
+            return TransactionError(ErrorCode.PARAMETERS_ERROR)
+
+        account: Account | ErrorCode = self.database.account_login(
+            nuid=data.nuid, password=data.password.get_secret_value()
         )
 
         if isinstance(account, ErrorCode):
             return TransactionError(account)
 
-        success: bool | ErrorCode = self.database.entitle_game(
-            account_id=account.id, key=data.key
-        )
+        success = self.database.account_entitle(account.id, data.key)
 
         if isinstance(success, ErrorCode):
             return TransactionError(success)
@@ -451,9 +505,13 @@ class AccountService(PlasmaService):
 
     def __handle_get_telemetry_token(
         self, data: GetTelemetryTokenRequest
-    ) -> GetTelemetryTokenResponse:
+    ) -> GetTelemetryTokenResponse | TransactionError:
         token = "0.0.0.0,9946,"
-        localeStr = self.plasma.connection.locale.value.replace("_", "")
+
+        if self.connection.locale is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        localeStr = self.connection.locale.value.replace("_", "")
 
         if len(localeStr) == 2:
             localeStr = localeStr + localeStr.upper()
@@ -479,23 +537,45 @@ class AccountService(PlasmaService):
     def __handle_nu_get_entitlements(
         self, data: NuGetEntitlementsRequest
     ) -> NuGetEntitlementsResponse | TransactionError:
-        groupName: str = data.groupName
+        if self.connection.account is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        groupName: str | None = data.groupName
         entitlementTag: str | None = data.entitlementTag
 
-        uid: int | None = (
-            data.masterUserId
-            if self.plasma.connection.type == ClientType.Server
-            else self.plasma.connection.accountId
-        )
+        if self.connection.type == ClientType.Server:
+            if data.masterUserId:
+                uid = data.masterUserId
+            else:
+                uid = 0
+        else:
+            uid = self.connection.account.id
 
-        entitlements: list[Entitlement] | ErrorCode = self.database.get_entitlements(
-            account_id=uid, groupName=groupName, entitlementTag=entitlementTag
+        entitlements = self.database.account_get_entitlements(
+            uid,
+            groupName,
+            entitlementTag,
         )
 
         if isinstance(entitlements, ErrorCode):
             return TransactionError(entitlements)
 
-        return NuGetEntitlementsResponse(entitlements=entitlements)
+        return NuGetEntitlementsResponse(
+            entitlements=[
+                Entitlement(
+                    userId=entitlement.owner.id,
+                    groupName=entitlement.groupName,
+                    entitlementId=entitlement.id,
+                    entitlementTag=entitlement.tag,
+                    productId=entitlement.productId,
+                    version=entitlement.version,
+                    grantDate=entitlement.grantDate,
+                    terminationDate=entitlement.terminationDate,
+                    status="ACTIVE",
+                )
+                for entitlement in entitlements
+            ]
+        )
 
     def __handle_get_locker_url(
         self, data: GetLockerURLRequest
@@ -507,11 +587,57 @@ class AccountService(PlasmaService):
     def __handle_nu_entitle_user(
         self, data: NuEntitleUserRequest
     ) -> NuEntitleUserResponse | TransactionError:
-        productList: list[Entitlement] | ErrorCode = self.database.entitle_user(
-            account_id=self.plasma.connection.accountId, key=data.key
+        if self.connection.account is None:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        productList = self.database.account_entitle(
+            self.connection.account.id, data.key
         )
 
         if isinstance(productList, ErrorCode):
             return TransactionError(productList)
 
-        return NuEntitleUserResponse(productList=productList)
+        return NuEntitleUserResponse(
+            productList=[
+                Entitlement(
+                    userId=product.owner.id,
+                    groupName=product.groupName,
+                    entitlementId=product.id,
+                    entitlementTag=product.tag,
+                    productId=product.productId,
+                    version=product.version,
+                    grantDate=product.grantDate,
+                    terminationDate=product.terminationDate,
+                    status="ACTIVE",
+                )
+                for product in productList
+            ]
+        )
+
+    def __handle_nu_lookup_user_info(
+        self, data: NuLookupUserInfoRequest
+    ) -> NuLookupUserInfoResponse | TransactionError:
+        response: list[UserInfo] = []
+
+        for request in data.userInfo:
+            userInfo = self.database.persona_get_by_name(request.userName)
+
+            if isinstance(userInfo, ErrorCode):
+                return TransactionError(ErrorCode.TRANSACTION_DATA_NOT_FOUND)
+
+            response.append(
+                UserInfo(
+                    userName=userInfo.name,
+                    namespace="battlefield",
+                    userId=userInfo.id,
+                    masterUserId=userInfo.owner.id,
+                )
+            )
+
+        return NuLookupUserInfoResponse(userInfo=response)
+
+    def __handle_nu_grant_entitlement(
+        self, data: NuGrantEntitlementRequest
+    ) -> NuGrantEntitlementResponse | TransactionError:
+        self.database.account_grant_entitlement(data)
+        return NuGrantEntitlementResponse()

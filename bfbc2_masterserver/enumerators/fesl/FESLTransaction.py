@@ -24,6 +24,8 @@ class FESLTransaction(Enum):
     NuGetEntitlements = "NuGetEntitlements"
     GetLockerURL = "GetLockerURL"
     NuEntitleUser = "NuEntitleUser"
+    NuLookupUserInfo = "NuLookupUserInfo"
+    NuGrantEntitlement = "NuGrantEntitlement"
 
     # Plasma (Assocation)
     GetAssociations = "GetAssociations"

@@ -43,7 +43,8 @@ class UpdateGameDetailsRequest(TheaterTransaction):
     @model_validator(mode="before")
     def aggregate_descriptions(cls, values):
         # TODO
-        del values["D-ServerDescriptionCount"]
+        if "D-ServerDescriptionCount" in values:
+            del values["D-ServerDescriptionCount"]
         return values
 
 

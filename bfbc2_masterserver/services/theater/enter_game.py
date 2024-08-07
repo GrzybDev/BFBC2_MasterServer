@@ -13,6 +13,10 @@ from bfbc2_masterserver.messages.theater.commands.EnterGame import (
 
 
 def handle_enter_game(ctx: BaseTheaterHandler, data: EnterGameRequest):
+    clientPlasma = ctx.client
+    if not clientPlasma.connection.persona:
+        return
+
     pid = ctx.manager.redis.incr(f"pid:{data.GID}")
 
     try:
@@ -20,7 +24,7 @@ def handle_enter_game(ctx: BaseTheaterHandler, data: EnterGameRequest):
     except KeyError:
         return
 
-    game = ctx.manager.database.get_game(data.LID, data.GID)
+    game = ctx.manager.database.game_get(data.LID, data.GID)
 
     if not game:
         return
@@ -37,34 +41,39 @@ def handle_enter_game(ctx: BaseTheaterHandler, data: EnterGameRequest):
     # Send "Enter Game Host Request" to the game server
     # This is the first step of the handshake
 
-    clientAddr = ctx.plasma.get_client_address()
+    clientAddr = clientPlasma.plasma.get_client_address()
     if not clientAddr:
         return
 
-    clientAddr = clientAddr.split(":")
+    clientIP, _ = clientAddr
 
-    serverClient.theater.start_theater_transaction(
+    serverClient.theater.start_transaction(
         TheaterCommand.EnterGameHostRequest,
         EnterGameHostRequest.model_validate(
             {
                 "R-INT-IP": data.R_INT_IP,
                 "R-INT-PORT": data.R_INT_PORT,
-                "IP": clientAddr[0],
+                "IP": clientIP,
                 "PORT": data.PORT,
-                "NAME": ctx.plasma.connection.personaName,
+                "NAME": clientPlasma.connection.persona.name,
                 "PTYPE": data.PTYPE,
                 "TICKET": ticket,
                 "PID": pid,
-                "UID": ctx.plasma.connection.personaId,
+                "UID": clientPlasma.connection.persona.id,
                 "LID": data.LID,
                 "GID": data.GID,
             }
         ),
     )
 
-    owner = ctx.manager.database.get_account(serverClient.plasma.connection.accountId)
+    if not serverClient.connection.persona:
+        return
 
-    if isinstance(owner, ErrorCode):
+    serverPersona = ctx.manager.database.persona_get_by_id(
+        serverClient.connection.persona.id
+    )
+
+    if isinstance(serverPersona, ErrorCode):
         return
 
     # Send "Enter Game Notice" to the client
@@ -73,18 +82,18 @@ def handle_enter_game(ctx: BaseTheaterHandler, data: EnterGameRequest):
     if not serverAddr:
         return
 
-    serverAddr = serverAddr.split(":")
+    serverIP, _ = serverAddr
 
-    ctx.start_theater_transaction(
+    ctx.start_transaction(
         TheaterCommand.EnterGameNotice,
         EnterGameNotice.model_validate(
             {
-                "PL": ctx.plasma.connection.platform,
+                "PL": clientPlasma.connection.platform,
                 "TICKET": ticket,
                 "PID": pid,
-                "I": serverAddr[0],
+                "I": serverIP,
                 "P": game.addrPort,
-                "HUID": owner.id,
+                "HUID": serverPersona.id,
                 "INT-PORT": game.addrPort,
                 "EKEY": game.ekey,
                 "INT-IP": game.addrIp,

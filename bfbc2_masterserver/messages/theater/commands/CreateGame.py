@@ -1,7 +1,8 @@
 from pydantic import Field, IPvAnyAddress, SecretStr
 
+from bfbc2_masterserver.enumerators.theater.GameType import GameType
+from bfbc2_masterserver.enumerators.theater.JoinMode import JoinMode
 from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
-from bfbc2_masterserver.models.plasma.database.Game import GameServer
 
 
 class CreateGameRequest(TheaterTransaction):
@@ -10,7 +11,7 @@ class CreateGameRequest(TheaterTransaction):
     NAME: str
     PORT: int
     HTTYPE: str
-    TYPE: str
+    TYPE: GameType
     QLEN: int
     DISABLE_AUTO_DEQUEUE: bool = Field(alias="DISABLE-AUTO-DEQUEUE")
     HXFR: bool
@@ -25,7 +26,7 @@ class CreateGameRequest(TheaterTransaction):
     B_U_HasPassword: bool = Field(alias="B-U-HasPassword")
     B_U_Punkbuster: bool = Field(alias="B-U-Punkbuster")
     B_version: str = Field(alias="B-version")
-    JOIN: str
+    JOIN: JoinMode
     RT: str
 
 

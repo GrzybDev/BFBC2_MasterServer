@@ -2,13 +2,17 @@ from typing import Optional
 
 from pydantic import Field, IPvAnyAddress
 
+from bfbc2_masterserver.enumerators.theater.GameType import GameType
 from bfbc2_masterserver.models.general.TheaterTransaction import TheaterTransaction
 
 
 class GetGameListRequest(TheaterTransaction):
+    class Config:
+        extra = "forbid"
+
     LID: int
     GID: Optional[int] = None
-    TYPE: str
+    TYPE: GameType
     FILTER_FAV_ONLY: bool = Field(alias="FILTER-FAV-ONLY")
     FILTER_NOT_FULL: bool = Field(alias="FILTER-NOT-FULL")
     FILTER_NOT_PRIVATE: bool = Field(alias="FILTER-NOT-PRIVATE")

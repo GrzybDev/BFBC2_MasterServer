@@ -1,7 +1,9 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
 class Chunk(BaseModel):
     data: str
-    decodedSize: int
+    decodedSize: Optional[int] = None
     size: int

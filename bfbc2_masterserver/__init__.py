@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from fastapi import FastAPI, HTTPException, Response, WebSocket
+from fastapi import FastAPI, HTTPException, Response, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 
 from bfbc2_masterserver.manager import Manager
@@ -29,7 +29,7 @@ async def locker(site: str, cmd: str, lkey: str, pers: str, game: str) -> Respon
     if site != "easo" or cmd != "dir":
         raise HTTPException(status_code=500, detail="Invalid command")
 
-    ownr = manager.redis.get(f"persona:{lkey}")
+    ownr = manager.redis.get(f"client:{lkey}")
 
     if not ownr:
         response += '<LOCKER error="2"/>'
@@ -60,4 +60,11 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         Exception: If any other exception occurs.
     """
 
-    await manager.handle_connection(websocket)
+    client = await manager.connect(websocket)
+
+    try:
+        while True:
+            raw_bytes = await websocket.receive_bytes()
+            await manager.handle_message(client, raw_bytes)
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket)

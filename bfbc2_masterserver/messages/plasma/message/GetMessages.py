@@ -1,5 +1,5 @@
 from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
-from bfbc2_masterserver.models.plasma.database.Message import Message
+from bfbc2_masterserver.models.plasma.Message import MessageResponse
 
 
 class GetMessagesRequest(PlasmaTransaction):
@@ -9,4 +9,4 @@ class GetMessagesRequest(PlasmaTransaction):
 
 
 class GetMessagesResponse(PlasmaTransaction):
-    messages: list[Message]
+    messages: list[MessageResponse]
