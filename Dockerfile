@@ -21,6 +21,8 @@ RUN poetry install --no-root
 # Production image, copy all the files and run next
 FROM base AS runner
 
+RUN apk add libpq --no-cache
+
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 bfbc2emu

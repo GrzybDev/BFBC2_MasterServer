@@ -31,6 +31,8 @@ class PlasmaService(ABC):
 
         self.connection = plasma.client.connection
         self.database = plasma.manager.database
+        self.manager = plasma.manager
+        self.redis = plasma.manager.redis
         self.plasma = plasma
 
     @abstractmethod

@@ -4,6 +4,7 @@ from base64 import b64decode, b64encode
 from pydoc import resolve
 
 from fastapi import WebSocket
+from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
 
 from bfbc2_masterserver.dataclasses.Client import Client
@@ -308,10 +309,16 @@ class Plasma(BasePlasmaHandler):
                 )
 
                 # Send the fragment
-                await self.websocket.send_bytes(message_fragment.compile())
+                try:
+                    await self.websocket.send_bytes(message_fragment.compile())
+                except RuntimeError as e:
+                    self.on_disconnect(str(e), None)
         else:
             # If the response fits into one message, send it
-            await self.websocket.send_bytes(response_bytes)
+            try:
+                await self.websocket.send_bytes(response_bytes)
+            except RuntimeError as e:
+                self.on_disconnect(str(e), None)
 
     def disconnect(self, reason: int) -> None:
         self.start_transaction(

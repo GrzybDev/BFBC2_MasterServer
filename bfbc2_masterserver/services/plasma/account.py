@@ -13,6 +13,10 @@ from bfbc2_masterserver.enumerators.client.ClientType import ClientType
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
 from bfbc2_masterserver.error import TransactionError
+from bfbc2_masterserver.messages.plasma.account.GameSpyPreAuth import (
+    GameSpyPreAuthRequest,
+    GameSpyPreAuthResponse,
+)
 from bfbc2_masterserver.messages.plasma.account.GetCountryList import (
     GetCountryListRequest,
     GetCountryListResponse,
@@ -33,6 +37,10 @@ from bfbc2_masterserver.messages.plasma.account.NuAddPersona import (
     NuAddPersonaRequest,
     NuAddPersonaResponse,
 )
+from bfbc2_masterserver.messages.plasma.account.NuCreateEncryptedToken import (
+    NuCreateEncryptedTokenRequest,
+    NuCreateEncryptedTokenResponse,
+)
 from bfbc2_masterserver.messages.plasma.account.NuDisablePersona import (
     NuDisablePersonaRequest,
     NuDisablePersonaResponse,
@@ -44,6 +52,22 @@ from bfbc2_masterserver.messages.plasma.account.NuEntitleGame import (
 from bfbc2_masterserver.messages.plasma.account.NuEntitleUser import (
     NuEntitleUserRequest,
     NuEntitleUserResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuGetAccount import (
+    NuGetAccountRequest,
+    NuGetAccountResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuGetAccountByNuid import (
+    NuGetAccountByNuidRequest,
+    NuGetAccountByNuidResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuGetAccountByPS3Ticket import (
+    NuGetAccountByPS3TicketRequest,
+    NuGetAccountByPS3TicketResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuGetEntitlementCount import (
+    NuGetEntitlementCountRequest,
+    NuGetEntitlementCountResponse,
 )
 from bfbc2_masterserver.messages.plasma.account.NuGetEntitlements import (
     NuGetEntitlementsRequest,
@@ -73,9 +97,42 @@ from bfbc2_masterserver.messages.plasma.account.NuLookupUserInfo import (
     NuLookupUserInfoRequest,
     NuLookupUserInfoResponse,
 )
+from bfbc2_masterserver.messages.plasma.account.NuPS3AddAccount import (
+    NuPS3AddAccountRequest,
+    NuPS3AddAccountResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuPS3Login import (
+    NuPS3LoginRequest,
+    NuPS3LoginResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuSearchOwners import (
+    NuSearchOwnersRequest,
+    NuSearchOwnersResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuSuggestPersonas import (
+    NuSuggestPersonasRequest,
+    NuSuggestPersonasResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuUpdateAccount import (
+    NuUpdateAccountRequest,
+    NuUpdateAccountResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuUpdatePassword import (
+    NuUpdatePasswordRequest,
+    NuUpdatePasswordResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuXBL360AddAccount import (
+    NuXBL360AddAccountRequest,
+    NuXBL360AddAccountResponse,
+)
+from bfbc2_masterserver.messages.plasma.account.NuXBL360Login import (
+    NuXBL360LoginRequest,
+    NuXBL360LoginResponse,
+)
 from bfbc2_masterserver.models.plasma.database.Account import Account
 from bfbc2_masterserver.models.plasma.database.Persona import Persona
 from bfbc2_masterserver.models.plasma.Entitlement import Entitlement
+from bfbc2_masterserver.models.plasma.Owner import Owner
 from bfbc2_masterserver.models.plasma.UserInfo import UserInfo
 from bfbc2_masterserver.tools.country_list import COUNTRY_LIST, getLocalizedCountryList
 from bfbc2_masterserver.tools.terms_of_service import getLocalizedTOS
@@ -157,6 +214,71 @@ class AccountService(PlasmaService):
         self.resolvers[FESLTransaction.NuGrantEntitlement] = (
             self.__handle_nu_grant_entitlement,
             NuGrantEntitlementRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuCreateEncryptedToken] = (
+            self.__handle_nu_create_encrypted_token,
+            NuCreateEncryptedTokenRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuUpdatePassword] = (
+            self.__handle_nu_update_password,
+            NuUpdatePasswordRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuGetAccount] = (
+            self.__handle_nu_get_account,
+            NuGetAccountRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuGetAccountByNuid] = (
+            self.__handle_nu_get_account_by_nuid,
+            NuGetAccountByNuidRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuGetAccountByPS3Ticket] = (
+            self.__handle_nu_get_account_by_ps3_ticket,
+            NuGetAccountByPS3TicketRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuUpdateAccount] = (
+            self.__handle_nu_update_account,
+            NuUpdateAccountRequest,
+        )
+
+        self.resolvers[FESLTransaction.GameSpyPreAuth] = (
+            self.__handle_gamespy_pre_auth,
+            GameSpyPreAuthRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuXBL360Login] = (
+            self.__handle_nu_xbl360_login,
+            NuXBL360LoginRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuXBL360AddAccount] = (
+            self.__handle_nu_xbl360_add_account,
+            NuXBL360AddAccountRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuPS3Login] = (
+            self.__handle_nu_ps3_login,
+            NuPS3LoginRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuPS3AddAccount] = (
+            self.__handle_nu_ps3_add_account,
+            NuPS3AddAccountRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuSearchOwners] = (
+            self.__handle_nu_search_owners,
+            NuSearchOwnersRequest,
+        )
+
+        self.resolvers[FESLTransaction.NuGetEntitlementCount] = (
+            self.__handle_nu_get_entitlement_count,
+            NuGetEntitlementCountRequest,
         )
 
     def _get_resolver(self, txn):
@@ -641,3 +763,100 @@ class AccountService(PlasmaService):
     ) -> NuGrantEntitlementResponse | TransactionError:
         self.database.account_grant_entitlement(data)
         return NuGrantEntitlementResponse()
+
+    def __handle_nu_create_encrypted_token(
+        self, data: NuCreateEncryptedTokenRequest
+    ) -> NuCreateEncryptedTokenResponse | TransactionError:
+        # I don't know what is the expected response for this transaction
+        # Name suggest that it should create new session? But I don't think it's ever called by the client
+        raise NotImplementedError("NuCreateEncryptedToken is not implemented")
+
+    def __handle_nu_suggest_personas(
+        self, data: NuSuggestPersonasRequest
+    ) -> NuSuggestPersonasResponse | TransactionError:
+        # Is this ever called from the client?
+
+        # Not sure what "name" is here, but I assume it's the name of the currently logged persona
+        if not self.connection.persona:
+            return TransactionError(ErrorCode.SESSION_NOT_AUTHORIZED)
+
+        if self.connection.persona.name != data.name:
+            return TransactionError(ErrorCode.SYSTEM_ERROR)
+
+        # I don't know what is the expected response for this transaction
+        raise NotImplementedError("NuSuggestPersonas is not implemented")
+
+    def __handle_nu_update_password(
+        self, data: NuUpdatePasswordRequest
+    ) -> NuUpdatePasswordResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuUpdatePassword is not implemented")
+
+    def __handle_nu_get_account(
+        self, data: NuGetAccountRequest
+    ) -> NuGetAccountResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuGetAccount is not implemented")
+
+    def __handle_nu_get_account_by_nuid(
+        self, data: NuGetAccountByNuidRequest
+    ) -> NuGetAccountByNuidResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuGetAccountByNuid is not implemented")
+
+    def __handle_nu_get_account_by_ps3_ticket(
+        self, data: NuGetAccountByPS3TicketRequest
+    ) -> NuGetAccountByPS3TicketResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuGetAccountByPS3Ticket is not implemented")
+
+    def __handle_nu_update_account(
+        self, data: NuUpdateAccountRequest
+    ) -> NuUpdateAccountResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuUpdateAccount is not implemented")
+
+    def __handle_gamespy_pre_auth(
+        self, data: GameSpyPreAuthRequest
+    ) -> GameSpyPreAuthResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("GameSpyPreAuth is not implemented")
+
+    def __handle_nu_xbl360_login(
+        self, data: NuXBL360LoginRequest
+    ) -> NuXBL360LoginResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuXBL360Login is not implemented")
+
+    def __handle_nu_xbl360_add_account(
+        self, data: NuXBL360AddAccountRequest
+    ) -> NuXBL360AddAccountResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuXBL360AddAccount is not implemented")
+
+    def __handle_nu_ps3_login(
+        self, data: NuPS3LoginRequest
+    ) -> NuPS3LoginResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuPS3Login is not implemented")
+
+    def __handle_nu_ps3_add_account(
+        self, data: NuPS3AddAccountRequest
+    ) -> NuPS3AddAccountResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuPS3AddAccount is not implemented")
+
+    def __handle_nu_search_owners(
+        self, data: NuSearchOwnersRequest
+    ) -> NuSearchOwnersResponse | TransactionError:
+        owners = self.database.persona_search(data.screenName)
+        return NuSearchOwnersResponse(
+            users=[Owner(id=owner.id, name=owner.name, type=1) for owner in owners],
+            nameSpaceId="battlefield",
+        )
+
+    def __handle_nu_get_entitlement_count(
+        self, data: NuGetEntitlementCountRequest
+    ) -> NuGetEntitlementCountResponse | TransactionError:
+        # Is this ever called from the client?
+        raise NotImplementedError("NuGetEntitlementCount is not implemented")

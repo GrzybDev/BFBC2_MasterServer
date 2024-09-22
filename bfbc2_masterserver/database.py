@@ -2,6 +2,7 @@ import os
 import secrets
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from uu import Error
 
@@ -14,6 +15,7 @@ from bfbc2_masterserver.enumerators.client.ClientPlatform import ClientPlatform
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.plasma.AssocationType import AssocationType
 from bfbc2_masterserver.enumerators.plasma.RecordName import RecordName
+from bfbc2_masterserver.enumerators.plasma.StatUpdateType import StatUpdateType
 from bfbc2_masterserver.enumerators.theater.GameType import GameType
 from bfbc2_masterserver.enumerators.theater.JoinMode import JoinMode
 from bfbc2_masterserver.messages.plasma.account.NuGrantEntitlement import (
@@ -29,6 +31,9 @@ from bfbc2_masterserver.models.plasma.database.Account import Account
 from bfbc2_masterserver.models.plasma.database.Association import Association
 from bfbc2_masterserver.models.plasma.database.Entitlement import Entitlement
 from bfbc2_masterserver.models.plasma.database.Message import Message
+from bfbc2_masterserver.models.plasma.database.MessageAttachment import (
+    MessageAttachment,
+)
 from bfbc2_masterserver.models.plasma.database.Persona import Persona
 from bfbc2_masterserver.models.plasma.database.Ranking import Ranking
 from bfbc2_masterserver.models.plasma.database.Record import Record
@@ -376,6 +381,16 @@ class DatabaseAPI:
 
             return persona
 
+    def persona_get_owner_id(self, persona_id: int) -> int | ErrorCode:
+        with Session(self._engine) as session:
+            persona_query = select(Persona).where(Persona.id == persona_id)
+            persona = session.exec(persona_query).one_or_none()
+
+            if not persona:
+                return ErrorCode.USER_NOT_FOUND
+
+            return persona.owner.id
+
     def persona_add(self, account_id: int, persona: Persona) -> bool | ErrorCode:
         with Session(self._engine) as session:
             account_query = select(Account).where(Account.id == account_id)
@@ -407,7 +422,26 @@ class DatabaseAPI:
 
             return True
 
-    def assocation_get(
+    def persona_search(self, search: str) -> list[Persona]:
+        with Session(self._engine) as session:
+            search = search.replace("*", "%").replace("_", "")
+            personas_query = select(Persona).filter(Persona.name.ilike(search))  # type: ignore
+            personas = session.exec(personas_query).all()
+
+            return list(personas)
+
+    def association_get(self, persona_id, target_id, association_type: AssocationType):
+        with Session(self._engine) as session:
+            association_query = select(Association).where(
+                Association.owner_id == persona_id,
+                Association.target_id == target_id,
+                Association.type == association_type,
+            )
+            association = session.exec(association_query).one_or_none()
+
+            return association
+
+    def association_get_all(
         self, persona_id: int, assocation_type: AssocationType
     ) -> list[Association] | ErrorCode:
         with Session(self._engine) as session:
@@ -422,8 +456,51 @@ class DatabaseAPI:
             for association in persona.associations:
                 if association.type == assocation_type:
                     assocations_list.append(association)
+                    # Preload the target persona
+                    association.target
 
             return assocations_list
+
+    def association_delete(self, association_id: int) -> bool | ErrorCode:
+        with Session(self._engine) as session:
+            association_query = select(Association).where(
+                Association.id == association_id
+            )
+            association = session.exec(association_query).one_or_none()
+
+            if not association:
+                return ErrorCode.SYSTEM_ERROR
+
+            session.delete(association)
+            session.commit()
+
+            return True
+
+    def association_add(
+        self, owner_id: int, target_id: int, type: AssocationType
+    ) -> Association | ErrorCode:
+        with Session(self._engine) as session:
+            association_query = select(Association).where(
+                Association.owner_id == owner_id,
+                Association.target_id == target_id,
+                Association.type == type,
+            )
+            existing_association = session.exec(association_query).one_or_none()
+
+            if existing_association:
+                return ErrorCode.SYSTEM_ERROR
+
+            association = Association(
+                owner_id=owner_id,
+                target_id=target_id,
+                type=type,
+            )
+
+            session.add(association)
+            session.commit()
+            session.refresh(association)
+
+            return association
 
     def ranking_get(self, persona_id: int, keys: list[str]) -> list[Ranking]:
         with Session(self._engine) as session:
@@ -483,6 +560,28 @@ class DatabaseAPI:
             stats = session.exec(stats_query).all()
             return list(stats)
 
+    def ranking_set(
+        self, persona_id: int, key: str, value: Decimal, update_type: StatUpdateType
+    ) -> bool:
+        with Session(self._engine) as session:
+            stat_query = select(Ranking).where(
+                Ranking.owner_id == persona_id, Ranking.key == key
+            )
+            stat = session.exec(stat_query).one_or_none()
+
+            if not stat:
+                stat = Ranking(owner_id=persona_id, key=key, value=value)
+            else:
+                if update_type == StatUpdateType.RelativeValue:
+                    stat.value += value
+                else:
+                    stat.value = value
+
+            session.add(stat)
+            session.commit()
+
+            return True
+
     def record_get(self, persona_id: int, type: RecordName) -> list[Record]:
         with Session(self._engine) as session:
             record_query = select(Record).where(Record.owner_id == persona_id)
@@ -492,12 +591,91 @@ class DatabaseAPI:
 
             return list(records)
 
-    def message_get(self, persona_id: int) -> list[Message]:
+    def record_add(
+        self, persona_id: int, type: RecordName, key: str, value: str
+    ) -> bool:
+        with Session(self._engine) as session:
+            record = Record(owner_id=persona_id, type=type, key=key, value=value)
+            session.add(record)
+            session.commit()
+
+            return True
+
+    def record_update(
+        self, persona_id: int, type: RecordName, key: str, value: str
+    ) -> bool:
+        with Session(self._engine) as session:
+            record_query = select(Record).where(
+                Record.owner_id == persona_id, Record.type == type, Record.key == key
+            )
+            record = session.exec(record_query).one_or_none()
+
+            if not record:
+                return False
+
+            record.value = value
+
+            session.add(record)
+            session.commit()
+
+            return True
+
+    def message_get(self, message_id: int) -> Message | None:
+        with Session(self._engine) as session:
+            message_query = select(Message).where(Message.id == message_id)
+            message = session.exec(message_query).one_or_none()
+
+            return message
+
+    def message_get_all(self, persona_id: int) -> list[Message]:
         with Session(self._engine) as session:
             message_query = select(Message).where(Message.recipient_id == persona_id)
             messages = session.exec(message_query).all()
 
             return list(messages)
+
+    def message_add(self, messageData: Message) -> Message:
+        with Session(self._engine) as session:
+            attachments = []
+
+            for attachment in messageData.attachments:
+                attachment = MessageAttachment(
+                    key=attachment.key, type=attachment.type, data=attachment.data
+                )
+
+                session.add(attachment)
+                session.commit()
+
+                attachments.append(attachment)
+
+            message = Message(
+                sender_id=messageData.sender_id,
+                recipient_id=messageData.recipient.id,
+                messageType=messageData.messageType,
+                deliveryType=messageData.deliveryType,
+                purgeStrategy=messageData.purgeStrategy,
+                expiration=messageData.expiration,
+                attachments=attachments,
+            )
+
+            session.add(message)
+            session.commit()
+            session.refresh(message)
+
+            return message
+
+    def message_delete(self, message_id: int) -> bool:
+        with Session(self._engine) as session:
+            message_query = select(Message).where(Message.id == message_id)
+            message = session.exec(message_query).one_or_none()
+
+            if not message:
+                return False
+
+            session.delete(message)
+            session.commit()
+
+            return True
 
     def lobby_get(self, lobby_id: int) -> Lobby | None:
         with Session(self._engine) as session:
@@ -705,6 +883,15 @@ class DatabaseAPI:
         with Session(self._engine) as session:
             game_query = select(Game).where(
                 Game.lobbyId == lobby_id, Game.id == game_id
+            )
+            game = session.exec(game_query).one_or_none()
+
+            return game
+
+    def game_find(self, gameType: GameType, level: int) -> Game | None:
+        with Session(self._engine) as session:
+            game_query = select(Game).where(
+                Game.gameType == gameType, Game.gameLevel == level
             )
             game = session.exec(game_query).one_or_none()
 

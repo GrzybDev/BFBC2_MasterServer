@@ -4,18 +4,19 @@ from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransactio
 from bfbc2_masterserver.models.plasma.Association import (
     AssociationRequest,
     AssociationResult,
+    AssociationReturn,
 )
 from bfbc2_masterserver.models.plasma.DomainPartition import DomainPartition
+from bfbc2_masterserver.models.plasma.Owner import Owner
 
 
-class AddAssociationsRequest(PlasmaTransaction):
+class DeleteAssociationsRequest(PlasmaTransaction):
     domainPartition: DomainPartition
     type: AssocationType
-    listFullBehavior: ListFullBehavior
-    addRequests: list[AssociationRequest]
+    deleteRequests: list[AssociationRequest]
 
 
-class AddAssociationsResponse(PlasmaTransaction):
+class DeleteAssociationsResponse(PlasmaTransaction):
     domainPartition: DomainPartition
     maxListSize: int
     result: list[AssociationResult]

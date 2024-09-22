@@ -17,17 +17,23 @@ class Message(SQLModel, table=True):
 
     sender: "Persona" = Relationship(
         back_populates="messagesSent",
-        sa_relationship_kwargs=dict(foreign_keys="[Message.sender_id]"),
+        sa_relationship_kwargs=dict(
+            foreign_keys="[Message.sender_id]", lazy="selectin"
+        ),
     )
-    sender_id: int = Field(default=None, foreign_key="persona.id")
+    sender_id: int | None = Field(default=None, foreign_key="persona.id")
 
     recipient: "Persona" = Relationship(
         back_populates="messages",
-        sa_relationship_kwargs=dict(foreign_keys="[Message.recipient_id]"),
+        sa_relationship_kwargs=dict(
+            foreign_keys="[Message.recipient_id]", lazy="selectin"
+        ),
     )
-    recipient_id: int = Field(default=None, foreign_key="persona.id")
+    recipient_id: int | None = Field(default=None, foreign_key="persona.id")
 
-    attachments: list["MessageAttachment"] = Relationship(back_populates="message")
+    attachments: list["MessageAttachment"] = Relationship(
+        back_populates="message", sa_relationship_kwargs=dict(lazy="selectin")
+    )
 
     deliveryType: str
     messageType: str

@@ -21,6 +21,10 @@ from bfbc2_masterserver.messages.plasma.connect.MemCheck import (
     MemCheckResult,
 )
 from bfbc2_masterserver.messages.plasma.connect.Ping import PingRequest, PingResponse
+from bfbc2_masterserver.messages.plasma.connect.Suicide import (
+    SuicideRequest,
+    SuicideResponse,
+)
 from bfbc2_masterserver.models.general.PlasmaTransaction import PlasmaTransaction
 from bfbc2_masterserver.models.plasma.DomainPartition import DomainPartition
 from bfbc2_masterserver.models.plasma.MemCheck import MemCheck
@@ -167,15 +171,10 @@ class ConnectService(PlasmaService):
         self.__make_memcheck()
         return response
 
-    def __create_memcheck(self, data: dict) -> MemCheckRequest:
+    def __create_memcheck(self, request: MemCheckRequest) -> MemCheckRequest:
         """
         Creates a memcheck request
         """
-        request = MemCheckRequest(
-            memcheck=MemCheck(),
-            type=0,
-            salt="".join(random.choice(string.digits) for _ in range(10)),
-        )
 
         return request
 
@@ -188,7 +187,7 @@ class ConnectService(PlasmaService):
 
     def __make_ping(self) -> None:
         self.plasma.start_transaction(
-            FESLService.ConnectService, FESLTransaction.Ping, PlasmaTransaction()
+            FESLService.ConnectService, FESLTransaction.Ping, PingRequest()
         )
 
         loop = asyncio.get_event_loop()
@@ -203,7 +202,13 @@ class ConnectService(PlasmaService):
 
     def __make_memcheck(self) -> None:
         self.plasma.start_transaction(
-            FESLService.ConnectService, FESLTransaction.MemCheck, PlasmaTransaction()
+            FESLService.ConnectService,
+            FESLTransaction.MemCheck,
+            MemCheckRequest(
+                memcheck=MemCheck(),
+                type=0,
+                salt="".join(random.choice(string.digits) for _ in range(10)),
+            ),
         )
 
         loop = asyncio.get_event_loop()
@@ -283,13 +288,13 @@ class ConnectService(PlasmaService):
 
         return TransactionSkip()
 
-    def __handle_suicide(self, data: dict):
+    def __handle_suicide(self, data: SuicideRequest) -> SuicideResponse:
         """
         Client support this message, but I'm not sure what this Transaction is supposed to do,
         we ignore it - never captured this packet from original master server so I suppose it's another leftover.
         """
 
-        raise NotImplementedError()
+        raise NotImplementedError("Suicide not implemented")
 
-    def __create_goodbye(self, data: GoodbyeRequest):
+    def __create_goodbye(self, data: GoodbyeRequest) -> GoodbyeRequest:
         return data

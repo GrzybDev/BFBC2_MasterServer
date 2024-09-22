@@ -10,7 +10,7 @@ class MessageAttachment(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
 
     message: "Message" = Relationship(back_populates="attachments")
-    message_id: int = Field(default=None, foreign_key="message.id")
+    message_id: int | None = Field(default=None, foreign_key="message.id")
 
     key: str
     type: str

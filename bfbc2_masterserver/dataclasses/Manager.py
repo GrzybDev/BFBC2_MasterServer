@@ -1,4 +1,5 @@
 from redis import Redis
+
 from bfbc2_masterserver.database import DatabaseAPI
 from bfbc2_masterserver.dataclasses.Client import Client
 

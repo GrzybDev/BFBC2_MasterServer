@@ -21,7 +21,7 @@ class MessageResponse(BaseModel):
     messageId: int
     messageType: str
     purgeStrategy: str
-    from_: Target = Field(validation_alias="from")
+    from_: Target = Field(alias="from")
     to: list[Target]
     timeSent: datetime
     expiration: datetime

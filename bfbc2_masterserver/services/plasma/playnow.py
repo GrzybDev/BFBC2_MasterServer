@@ -73,7 +73,7 @@ class PlayNowService(PlasmaService):
         prefGamemode = params.get("prefGamemode")
         prefLevel = params.get("prefLevel")
 
-        game = self.database.find_game(prefGamemode, prefLevel)
+        game = self.database.game_find(prefGamemode, prefLevel)
 
         if game:
             self.plasma.start_transaction(
@@ -81,8 +81,8 @@ class PlayNowService(PlasmaService):
                 FESLTransaction.Status,
                 StatusRequest(
                     id=matchmakingId,
-                    gid=game.GID,
-                    lid=game.LID,
+                    gid=game.id,
+                    lid=game.lobbyId,
                 ),
             )
         else:

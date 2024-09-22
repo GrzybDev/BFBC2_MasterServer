@@ -16,3 +16,8 @@ services:
       REDIS_HOST: redis
     ports: 
       - "8000:8000"
+    depends_on:
+      - database
+      - redis
+    volumes:
+      - ./static:/app/static

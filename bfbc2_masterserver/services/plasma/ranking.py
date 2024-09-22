@@ -4,6 +4,10 @@ from bfbc2_masterserver.dataclasses.plasma.Service import PlasmaService
 from bfbc2_masterserver.enumerators.ErrorCode import ErrorCode
 from bfbc2_masterserver.enumerators.fesl.FESLTransaction import FESLTransaction
 from bfbc2_masterserver.error import TransactionError
+from bfbc2_masterserver.messages.plasma.ranking.GetDateRange import (
+    GetDateRangeRequest,
+    GetDateRangeResponse,
+)
 from bfbc2_masterserver.messages.plasma.ranking.GetRankedStatsForOwners import (
     GetRankedStatsForOwnersRequest,
     GetRankedStatsForOwnersResponse,
@@ -16,10 +20,26 @@ from bfbc2_masterserver.messages.plasma.ranking.GetStats import (
     GetStatsRequest,
     GetStatsResponse,
 )
+from bfbc2_masterserver.messages.plasma.ranking.GetStatsForOwners import (
+    GetStatsForOwnersRequest,
+    GetStatsForOwnersResponse,
+)
+from bfbc2_masterserver.messages.plasma.ranking.GetTopN import (
+    GetTopNRequest,
+    GetTopNResponse,
+)
+from bfbc2_masterserver.messages.plasma.ranking.GetTopNAndMe import (
+    GetTopNAndMeRequest,
+    GetTopNAndMeResponse,
+)
 from bfbc2_masterserver.messages.plasma.ranking.GetTopNAndStats import (
     GetTopNAndStatsRequest,
     GetTopNAndStatsResponse,
     Leaderboard,
+)
+from bfbc2_masterserver.messages.plasma.ranking.UpdateStats import (
+    UpdateStatsRequest,
+    UpdateStatsResponse,
 )
 from bfbc2_masterserver.models.plasma.database.Ranking import Ranking
 from bfbc2_masterserver.models.plasma.Stats import RankedOwnerStat, RankedStat, Stat
@@ -48,6 +68,31 @@ class RankingService(PlasmaService):
         self.resolvers[FESLTransaction.GetTopNAndStats] = (
             self.__handle_get_top_n_and_stats,
             GetTopNAndStatsRequest,
+        )
+
+        self.resolvers[FESLTransaction.UpdateStats] = (
+            self.__handle_update_stats,
+            UpdateStatsRequest,
+        )
+
+        self.resolvers[FESLTransaction.GetStatsForOwners] = (
+            self.__handle_get_stats_for_owners,
+            GetStatsForOwnersRequest,
+        )
+
+        self.resolvers[FESLTransaction.GetTopN] = (
+            self.__handle_get_top_n,
+            GetTopNRequest,
+        )
+
+        self.resolvers[FESLTransaction.GetTopNAndMe] = (
+            self.__handle_get_top_n_and_me,
+            GetTopNAndMeRequest,
+        )
+
+        self.resolvers[FESLTransaction.GetDateRange] = (
+            self.__handle_get_date_range,
+            GetDateRangeRequest,
         )
 
     def _get_resolver(self, txn):
@@ -157,3 +202,28 @@ class RankingService(PlasmaService):
             )
 
         return GetTopNAndStatsResponse(stats=leaderboard)
+
+    def __handle_update_stats(self, data: UpdateStatsRequest) -> UpdateStatsResponse:
+        for request in data.u:
+            for stat in request.s:
+                self.database.ranking_set(request.o, stat.k, stat.v, stat.ut)
+
+        return UpdateStatsResponse()
+
+    def __handle_get_stats_for_owners(
+        self, data: GetStatsForOwnersRequest
+    ) -> GetStatsForOwnersResponse:
+        raise NotImplementedError("GetStatsForOwners is not implemented")
+
+    def __handle_get_top_n(self, data: GetTopNRequest) -> GetTopNResponse:
+        raise NotImplementedError("GetTopN is not implemented")
+
+    def __handle_get_top_n_and_me(
+        self, data: GetTopNAndMeRequest
+    ) -> GetTopNAndMeResponse:
+        raise NotImplementedError("GetTopNAndMe is not implemented")
+
+    def __handle_get_date_range(
+        self, data: GetDateRangeRequest
+    ) -> GetDateRangeResponse:
+        raise NotImplementedError("GetDateRange is not implemented")
