@@ -206,29 +206,27 @@ class Message:
 
     # Method to parse transaction data
     def __parse_transaction_data(self, data):
-        # For each key-value pair in the data
-
-        for key, value in data.items():
-            # If the value is a dictionary and contains the key "[]"
+        def handle_nested_arrays(value):
             if isinstance(value, dict) and "[]" in value:
-                length = value.pop("[]")  # Remove the "[]" key and get its value
-                temp_array = []  # Temporary array to store the items
+                length = value.pop("[]")
+                temp_array = []
 
-                # Add each item in the value to the temporary array
                 for item in value:
-                    temp_array.append(value[item])
+                    temp_array.append(handle_nested_arrays(value[item]))
 
-                # If the length does not match the length of the temporary array, log a warning
                 if length != len(temp_array):
                     logger.warning(
                         f"Array length does not match (Expected: {length}, Got: {len(temp_array)})"
                     )
 
-                # Assign the temporary array to the key in the data
-                self.data[key] = temp_array
+                return temp_array
+            elif isinstance(value, dict):
+                return {k: handle_nested_arrays(v) for k, v in value.items()}
             else:
-                # If the value is not a dictionary or does not contain the key "[]", assign the value to the key in the data
-                self.data[key] = value
+                return value
+
+        for key, value in data.items():
+            self.data[key] = handle_nested_arrays(value)
 
     # Method to parse a value from a string
     def __parse_value(self, value: str) -> int | str:
