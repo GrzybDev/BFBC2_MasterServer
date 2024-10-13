@@ -808,7 +808,7 @@ class DatabaseAPI:
             # Create a new game
 
             # If there's no room in a lobby, or there's no lobby, create a new one
-            lobby_query = select(Lobby, func.count())
+            lobby_query = select(Lobby, func.count()).group_by(Lobby.id)  # type: ignore
             lobby_return = session.exec(lobby_query).one_or_none()
 
             if not lobby_return:
