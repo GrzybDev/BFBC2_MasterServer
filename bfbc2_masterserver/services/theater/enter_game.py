@@ -10,6 +10,9 @@ from bfbc2_masterserver.messages.theater.commands.EnterGame import (
     EnterGameRequest,
     EnterGameResponse,
 )
+from bfbc2_masterserver.messages.theater.commands.QueueEntered import (
+    QueueEnteredRequest,
+)
 
 
 def handle_enter_game(ctx: BaseTheaterHandler, data: EnterGameRequest):
@@ -29,11 +32,32 @@ def handle_enter_game(ctx: BaseTheaterHandler, data: EnterGameRequest):
     if not game:
         return
 
-    serverFull = False  # TODO: Handle queue
-    if serverFull:
-        return
+    serverFull = game.activePlayers + 1 > game.maxPlayers
 
-    yield EnterGameResponse(LID=data.LID, GID=data.GID, QPOS=None, QLEN=None)
+    qpos, qlen = None, None
+
+    if serverFull:
+        queue_data = ctx.manager.redis.get(f"queue:{data.GID}")
+
+        if not queue_data:
+            queue_data = ""
+        else:
+            queue_data = str(queue_data)
+
+        queue = queue_data.split(";")
+        queue.append(str(pid))
+        queue_data = ";".join(queue)
+
+        ctx.manager.redis.set(f"queue:{str(data.GID)}", queue_data)
+        ctx.manager.redis.set(
+            f"queuedPlayers:{str(data.GID)}:{str(pid)}",
+            f"{clientPlasma.connection.persona.id};{data.R_INT_IP}:{data.R_INT_PORT};{clientPlasma.connection.internalIp}:{data.PORT};{data.PTYPE}",
+        )
+
+        qpos = queue.index(str(pid)) - 1
+        qlen = len(queue) - 1
+
+    yield EnterGameResponse(LID=data.LID, GID=data.GID, QPOS=qpos, QLEN=qlen)
 
     # Ticket is random 10 digit number, it has to be sent to both client and server
     ticket = "".join(random.choices(string.digits, k=10))
@@ -47,24 +71,40 @@ def handle_enter_game(ctx: BaseTheaterHandler, data: EnterGameRequest):
 
     clientIP, _ = clientAddr
 
-    serverClient.theater.start_transaction(
-        TheaterCommand.EnterGameHostRequest,
-        EnterGameHostRequest.model_validate(
-            {
-                "R-INT-IP": data.R_INT_IP,
-                "R-INT-PORT": data.R_INT_PORT,
-                "IP": clientIP,
-                "PORT": data.PORT,
-                "NAME": clientPlasma.connection.persona.name,
-                "PTYPE": data.PTYPE,
-                "TICKET": ticket,
-                "PID": pid,
-                "UID": clientPlasma.connection.persona.id,
-                "LID": data.LID,
-                "GID": data.GID,
-            }
-        ),
-    )
+    if not serverFull:
+        serverClient.theater.start_transaction(
+            TheaterCommand.EnterGameHostRequest,
+            EnterGameHostRequest.model_validate(
+                {
+                    "R-INT-IP": data.R_INT_IP,
+                    "R-INT-PORT": data.R_INT_PORT,
+                    "IP": clientIP,
+                    "PORT": data.PORT,
+                    "NAME": clientPlasma.connection.persona.name,
+                    "PTYPE": data.PTYPE,
+                    "TICKET": ticket,
+                    "PID": pid,
+                    "UID": clientPlasma.connection.persona.id,
+                    "LID": data.LID,
+                    "GID": data.GID,
+                }
+            ),
+        )
+    else:
+        serverClient.theater.start_transaction(
+            TheaterCommand.QueueEntered,
+            QueueEnteredRequest.model_validate(
+                {
+                    "R-INT-IP": data.R_INT_IP,
+                    "R-INT-PORT": data.R_INT_PORT,
+                    "NAME": clientPlasma.connection.persona.name,
+                    "PID": pid,
+                    "UID": clientPlasma.connection.persona.id,
+                    "LID": data.LID,
+                    "GID": data.GID,
+                }
+            ),
+        )
 
     if not serverClient.connection.persona:
         return

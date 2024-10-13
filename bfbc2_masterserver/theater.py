@@ -174,6 +174,10 @@ class Theater(BaseTheaterHandler):
 
                 if command != TheaterCommand.Echo:
                     message.data.TID = self.transactionID
+                elif command == TheaterCommand.EnterGameHostRequest and (
+                    response.QPOS is not None or response.QLEN is not None
+                ):
+                    message.type = MessageType.TheaterQueue.value
                 else:
                     message.data.TID = tid
 
