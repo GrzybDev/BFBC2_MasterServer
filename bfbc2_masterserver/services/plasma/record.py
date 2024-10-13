@@ -99,7 +99,7 @@ class RecordService(PlasmaService):
         if not records:
             return TransactionError(ErrorCode.RECORD_NOT_FOUND)
 
-        values = {record.key: record.value for record in records}
+        values = {"{" + str(record.key) + "}": record.value for record in records}
         return GetRecordAsMapResponse(
             state=1,
             TTL=0,
@@ -154,6 +154,7 @@ class RecordService(PlasmaService):
             return TransactionError(ErrorCode.SYSTEM_ERROR)
 
         for key, value in data.values.items():
+            key = int(key[1:-1])  # Remove curly braces
             self.database.record_add(
                 self.connection.persona.id, data.recordName, key, value
             )
@@ -167,6 +168,8 @@ class RecordService(PlasmaService):
             return TransactionError(ErrorCode.SYSTEM_ERROR)
 
         for key, value in data.values.items():
+            key = int(key[1:-1])  # Remove curly braces
+
             self.database.record_update(
                 self.connection.persona.id, data.recordName, key, value
             )
