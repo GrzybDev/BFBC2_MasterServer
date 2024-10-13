@@ -17,7 +17,7 @@ class Record(SQLModel, table=True):
     owner: "Persona" = Relationship(back_populates="records")
     owner_id: int | None = Field(default=None, foreign_key="persona.id")
 
-    key: str
+    key: int
     value: str
     type: RecordName
 

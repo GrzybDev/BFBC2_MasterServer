@@ -608,7 +608,7 @@ class DatabaseAPI:
             return list(records)
 
     def record_add(
-        self, persona_id: int, type: RecordName, key: str, value: str
+        self, persona_id: int, type: RecordName, key: int, value: str
     ) -> bool:
         with Session(self._engine) as session:
             record = Record(owner_id=persona_id, type=type, key=key, value=value)
@@ -618,7 +618,7 @@ class DatabaseAPI:
             return True
 
     def record_update(
-        self, persona_id: int, type: RecordName, key: str, value: str
+        self, persona_id: int, type: RecordName, key: int, value: str
     ) -> bool:
         with Session(self._engine) as session:
             record_query = select(Record).where(

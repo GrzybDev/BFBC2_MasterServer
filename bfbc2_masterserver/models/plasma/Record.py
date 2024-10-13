@@ -5,6 +5,6 @@ from pydantic import BaseModel
 
 
 class Record(BaseModel):
-    key: str
+    key: int
     value: str
     updated: Optional[datetime] = None
