@@ -9,3 +9,4 @@ class MessageType(Enum):
     PlasmaChunkedResponse = 0xB0000000
     TheaterRequest = 0x40000000
     TheaterResponse = 0x00000000
+    TheaterQueue = 0x71756575

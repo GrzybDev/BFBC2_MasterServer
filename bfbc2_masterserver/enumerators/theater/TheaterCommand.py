@@ -21,3 +21,4 @@ class TheaterCommand(Enum):
     LeaveGame = "ECNL"
     PlayerExited = "PLVT"
     PlayerEntered = "PENT"
+    QueueEntered = "QENT"
