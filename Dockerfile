@@ -30,6 +30,7 @@ RUN adduser --system --uid 1001 bfbc2emu
 
 COPY --chown=bfbc2emu:bfbc2emu bfbc2_masterserver ./bfbc2_masterserver
 COPY --from=builder --chown=bfbc2emu:bfbc2emu /app/.venv ./.venv
+ADD static /app/static
 
 USER bfbc2emu
 
