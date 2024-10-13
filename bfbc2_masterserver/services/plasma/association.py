@@ -183,7 +183,7 @@ class AssociationService(PlasmaService):
                         member=AssociationReturn(
                             id=addRequest.owner.id,
                             name=self.connection.persona.name,
-                            type=1,
+                            type=addRequest.owner.type,
                             created=(
                                 assoResult.createdAt
                                 if not isinstance(assoResult, ErrorCode)
@@ -198,7 +198,7 @@ class AssociationService(PlasmaService):
                         operation=AssocationUpdateOperation.ADD,
                         owner=Owner(
                             id=addRequest.member.id,
-                            name=addRequest.member.name,
+                            name=memberPersona.name,
                             type=addRequest.member.type,
                         ),
                         type=data.type.value,
@@ -208,9 +208,9 @@ class AssociationService(PlasmaService):
             result.append(
                 AssociationResult(
                     member=AssociationReturn(
-                        id=addRequest.owner.id,
-                        name=self.connection.persona.name,
-                        type=1,
+                        id=addRequest.member.id,
+                        name=memberPersona.name,
+                        type=addRequest.member.type,
                         created=(
                             assoResult.createdAt
                             if not isinstance(assoResult, ErrorCode)
