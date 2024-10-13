@@ -16,7 +16,7 @@ class UpdateGameRequest(TheaterTransaction):
     name: Optional[str] = Field(alias="NAME", default=None)
     serverEA: Optional[bool] = Field(alias="B-U-EA", default=None)
     providerId: Optional[str] = Field(alias="B-U-Provider", default=None)
-    queueLength: Optional[bool] = Field(alias="B-U-QueueLength", default=None)
+    queueLength: Optional[int] = Field(alias="B-U-QueueLength", default=None)
     serverSoftcore: Optional[bool] = Field(alias="B-U-Softcore", default=None)
     gameTime: Optional[str] = Field(alias="B-U-Time", default=None)
     gameElo: Optional[int] = Field(alias="B-U-elo", default=None)
