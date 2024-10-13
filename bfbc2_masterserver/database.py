@@ -461,17 +461,33 @@ class DatabaseAPI:
 
             return assocations_list
 
-    def association_delete(self, association_id: int) -> bool | ErrorCode:
+    def association_delete(
+        self, association_id: int, association_target_id: int | None = None
+    ) -> bool | ErrorCode:
         with Session(self._engine) as session:
             association_query = select(Association).where(
                 Association.id == association_id
             )
+
+            association_target = None
+
+            if association_target_id:
+                association_target_query = select(Association).where(
+                    Association.id == association_target_id
+                )
+
+                association_target = session.exec(
+                    association_target_query
+                ).one_or_none()
+
             association = session.exec(association_query).one_or_none()
 
-            if not association:
+            if not association or (association_target_id and not association_target):
                 return ErrorCode.SYSTEM_ERROR
 
             session.delete(association)
+            if association_target:
+                session.delete(association_target)
             session.commit()
 
             return True

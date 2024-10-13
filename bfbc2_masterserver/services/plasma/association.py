@@ -252,6 +252,10 @@ class AssociationService(PlasmaService):
                 deleteRequest.owner.id, deleteRequest.member.id, data.type
             )
 
+            association_target = self.database.association_get(
+                deleteRequest.member.id, deleteRequest.owner.id, data.type
+            )
+
             associations = self.database.association_get_all(
                 deleteRequest.owner.id, data.type
             )
@@ -259,10 +263,10 @@ class AssociationService(PlasmaService):
             if isinstance(associations, ErrorCode):
                 return TransactionError(ErrorCode.TRANSACTION_DATA_NOT_FOUND)
 
-            if not association:
+            if not association or not association_target:
                 outcome = 23005
             else:
-                self.database.association_delete(association.id)
+                self.database.association_delete(association.id, association_target.id)
 
             memberAccountId = self.database.persona_get_owner_id(
                 deleteRequest.member.id
