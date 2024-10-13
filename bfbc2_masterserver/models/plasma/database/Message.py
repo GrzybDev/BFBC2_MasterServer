@@ -32,7 +32,9 @@ class Message(SQLModel, table=True):
     recipient_id: int | None = Field(default=None, foreign_key="persona.id")
 
     attachments: list["MessageAttachment"] = Relationship(
-        back_populates="message", sa_relationship_kwargs=dict(lazy="selectin")
+        back_populates="message",
+        sa_relationship_kwargs=dict(lazy="selectin"),
+        cascade_delete=True,
     )
 
     deliveryType: str
