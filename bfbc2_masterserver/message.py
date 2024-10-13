@@ -265,7 +265,7 @@ class Message:
         # Iterate over each key-value pair in the dictionary
         for k, v in d.items():
             # Create a new key by appending the current key to the parent key
-            new_key = parent_key + sep + k if parent_key else k
+            new_key = parent_key + sep + str(k) if parent_key else k
 
             # If the value is a dictionary, recursively flatten it
             if isinstance(v, MutableMapping):
