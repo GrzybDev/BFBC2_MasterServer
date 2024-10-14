@@ -58,7 +58,7 @@ Eventually, running manually:
 - Python 3.10+
 - Poetry
 - Redis server
-- SQLAlchemy-compatible or MongoDB database
+- SQLAlchemy-compatible
 
 Setup
 -----
