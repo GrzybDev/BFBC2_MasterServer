@@ -39,13 +39,3 @@ jobs:
           tags: ${{ secrets.REGISTRY_URL }}/games/bfbc2/master:${{ github.sha }},${{ secrets.REGISTRY_URL }}/games/bfbc2/master:${{ github.event_name == 'workflow_dispatch' && 'latest' || 'dev' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-    - name: Deploy
-      uses: and-fm/cloudflared-ssh-action@v3
-      if: github.event_name == 'workflow_dispatch'
-      with:
-        host: ${{ secrets.PROD_HOST }}
-        username: ${{ secrets.PROD_USERNAME }}
-        private_key_filename: id_ed25519
-        private_key_value: ${{ secrets.PROD_KEY }}
-        commands: docker service update --image ${{ secrets.REGISTRY_URL_INT }}/games/bfbc2/master:${{ github.sha }} emu_bfbc2_app
